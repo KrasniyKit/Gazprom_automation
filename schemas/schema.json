@@ -1,0 +1,208 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Passport OCR Record",
+  "description": "Unified schema for equipment and cabinet passports extracted from scanned documents.",
+  "type": "object",
+  "required": [
+    "doc_type",
+    "passport_number",
+    "manufacturer",
+    "items",
+    "source"
+  ],
+  "properties": {
+    "doc_type": {
+      "type": "string",
+      "enum": [
+        "equipment_passport",
+        "cabinet_passport"
+      ]
+    },
+    "passport_number": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Passport number or identifier visible in document."
+    },
+    "issue_date": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date"
+    },
+    "manufacturer": {
+      "type": "string",
+      "minLength": 1
+    },
+    "cabinet": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "factory_number": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "barcode": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "required": [
+        "type",
+        "value"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "Code39",
+            "Code128",
+            "EAN-13"
+          ]
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "items": {
+      "type": "array",
+      "description": "Single item for equipment passport, multiple for cabinet passport.",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "passport_number"
+        ],
+        "properties": {
+          "line_number": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "passport_number": {
+            "type": "string",
+            "minLength": 1
+          },
+          "factory_number": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "minLength": 1
+          },
+          "pages_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          },
+          "certificate_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "file_name",
+        "page_count"
+      ],
+      "properties": {
+        "file_name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "page_count": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "ocr_engine": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "ocr_confidence": {
+          "type": [
+            "number",
+            "null"
+          ],
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "additionalProperties": false
+    },
+    "notes": {
+      "type": [
+        "string",
+        "null"
+      ]
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "doc_type": {
+            "const": "equipment_passport"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "items": {
+            "maxItems": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "doc_type": {
+            "const": "cabinet_passport"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "cabinet"
+        ]
+      }
+    }
+  ],
+  "additionalProperties": false
+}
