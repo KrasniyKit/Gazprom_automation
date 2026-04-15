@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Passport OCR Record",
-  "description": "Unified schema for equipment and cabinet passports extracted from scanned documents.",
+  "description": "Unified schema for equipment passport documents extracted from scanned documents, including aggregated cabinet grouping context.",
   "type": "object",
   "required": [
     "doc_type",
@@ -14,8 +14,7 @@
     "doc_type": {
       "type": "string",
       "enum": [
-        "equipment_passport",
-        "cabinet_passport"
+        "equipment_passport"
       ]
     },
     "passport_number": {
@@ -39,6 +38,7 @@
         "object",
         "null"
       ],
+      "description": "Optional cabinet grouping context for aggregated equipment rows (1C table grouping).",
       "required": [
         "name"
       ],
@@ -84,7 +84,7 @@
     },
     "items": {
       "type": "array",
-      "description": "Single item for equipment passport, multiple for cabinet passport.",
+      "description": "Extracted equipment rows; may contain one or multiple items, including rows grouped by cabinet context.",
       "minItems": 1,
       "items": {
         "type": "object",
@@ -172,37 +172,5 @@
       ]
     }
   },
-  "allOf": [
-    {
-      "if": {
-        "properties": {
-          "doc_type": {
-            "const": "equipment_passport"
-          }
-        }
-      },
-      "then": {
-        "properties": {
-          "items": {
-            "maxItems": 1
-          }
-        }
-      }
-    },
-    {
-      "if": {
-        "properties": {
-          "doc_type": {
-            "const": "cabinet_passport"
-          }
-        }
-      },
-      "then": {
-        "required": [
-          "cabinet"
-        ]
-      }
-    }
-  ],
   "additionalProperties": false
 }

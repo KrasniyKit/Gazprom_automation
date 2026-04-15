@@ -51,6 +51,11 @@ PASSPORT_PHRASE_RE = re.compile(
     r"\bПаспорт\s+[A-ZА-ЯЁ0-9.\- ]{4,}",
     re.IGNORECASE,
 )
+SIMPLE_PS_RE = re.compile(
+    r"\bПС\s*[-–—:]?\s*([A-ZА-ЯЁ0-9][A-ZА-ЯЁ0-9.\-\/]{2,})\b",
+    re.IGNORECASE,
+)
+DOC_ID_CANDIDATE_RE = re.compile(r"\b([A-ZА-ЯЁ0-9][A-ZА-ЯЁ0-9.\-\/]{5,})\b", re.IGNORECASE)
 
 
 MANUFACTURER_LEGAL_RE = re.compile(
@@ -214,7 +219,7 @@ def extract_layout_text_from_pdf(pdf_path: Path, lang: str = "rus+eng", dpi: int
     return "\n".join(all_lines) if all_lines else None
 
 
-def detect_doc_type(text: str, file_name: str) -> str:
+def is_grouped_table_document(text: str, file_name: str) -> bool:
     low = text.lower()
     strong_markers = (
         "перечень документации" in low
@@ -237,28 +242,47 @@ def detect_doc_type(text: str, file_name: str) -> str:
         "код позиции" in low and "наименование" in low and ("кол-во" in low or "кол-во факту" in low)
     )
 
-    if strong_markers or has_item_table_signature or (primary_hits >= 1 and structure_hits >= 1 and table_hint_hits >= 2 and row_count >= 3):
-        return "cabinet_passport"
-    return "equipment_passport"
+    return bool(
+        strong_markers
+        or has_item_table_signature
+        or (primary_hits >= 1 and structure_hits >= 1 and table_hint_hits >= 2 and row_count >= 3)
+    )
 
 
-def extract_top_passport_number(text: str, doc_type: str) -> str:
-    if doc_type == "cabinet_passport":
+def extract_top_passport_number(text: str, grouped_table: bool) -> str:
+    if grouped_table:
         m = CABINET_CODE_RE.search(text)
         if m:
             return m.group(1)
         passport_matches = PASSPORT_RE.findall(text)
         if passport_matches:
             return normalize_passport_number(passport_matches[0])
+        simple_ps = SIMPLE_PS_RE.search(text)
+        if simple_ps:
+            return normalize_passport_number(simple_ps.group(1))
         for m_doc in DOC_DOTTED_RE.finditer(text):
             token = norm_space(m_doc.group(0)).upper()
             if token.endswith(("ПС", "РЭ")) and not token.startswith("ГОСТ"):
                 return token
+        for line in text.splitlines()[:80]:
+            clean = norm_space(line)
+            if not clean or clean.startswith("--- page"):
+                continue
+            candidate = DOC_ID_CANDIDATE_RE.search(clean)
+            if not candidate:
+                continue
+            token = candidate.group(1).upper()
+            if not any(ch.isalpha() for ch in token) or not any(ch.isdigit() for ch in token):
+                continue
+            return token
         return "UNKNOWN_PASSPORT"
 
     passport_matches = PASSPORT_RE.findall(text)
     if passport_matches:
         return normalize_passport_number(passport_matches[0])
+    simple_ps = SIMPLE_PS_RE.search(text)
+    if simple_ps:
+        return normalize_passport_number(simple_ps.group(1))
     for m_doc in DOC_DOTTED_RE.finditer(text):
         token = norm_space(m_doc.group(0)).upper()
         if not token.startswith("ГОСТ"):
@@ -270,6 +294,17 @@ def extract_top_passport_number(text: str, doc_type: str) -> str:
         low = line.lower()
         if "паспорт" in low or "руководство" in low:
             return m_compact.group(0).upper()
+    for line in text.splitlines()[:80]:
+        clean = norm_space(line)
+        if not clean or clean.startswith("--- page"):
+            continue
+        candidate = DOC_ID_CANDIDATE_RE.search(clean)
+        if not candidate:
+            continue
+        token = candidate.group(1).upper()
+        if not any(ch.isalpha() for ch in token) or not any(ch.isdigit() for ch in token):
+            continue
+        return token
     return "UNKNOWN_PASSPORT"
 
 
@@ -312,6 +347,8 @@ def extract_manufacturer(text: str) -> str:
         return "АО «ТРЭИ»"
     if "бнрд." in low_text:
         return "АО «ТеконГруп»"
+    if "visprom" in low_text:
+        return "VISPROM"
 
     # 4) Фолбэк на строку после маркера, даже если без юр. формы.
     for ln in lines:
@@ -324,19 +361,33 @@ def extract_manufacturer(text: str) -> str:
     return "UNKNOWN_MANUFACTURER"
 
 
-def extract_cabinet(text: str, doc_type: str) -> dict | None:
-    if doc_type != "cabinet_passport":
+def extract_cabinet(text: str, grouped_table: bool) -> dict | None:
+    if not grouped_table:
         return None
     lines = [ln.strip() for ln in text.splitlines() if ln.strip()]
     name = next((ln for ln in lines if "шкаф" in ln.lower()), None)
     if name is None:
         # Для групповых паспортов без слова "шкаф" собираем имя из верхнего заголовка.
-        upper_lines = [ln for ln in lines[:40] if len(ln) > 8 and not re.search(r"\d{2,}", ln)]
+        upper_lines = [
+            ln
+            for ln in lines[:40]
+            if len(ln) > 8 and not re.search(r"\d{2,}", ln) and not ln.startswith("--- page")
+        ]
         title_candidates = [ln for ln in upper_lines if ln.upper() == ln]
         if title_candidates:
             name = norm_space(" ".join(title_candidates[:2]))
         else:
-            name = next((ln for ln in lines[:20] if "паспорт" not in ln.lower()), "UNKNOWN_CABINET")
+            name = next(
+                (
+                    ln
+                    for ln in lines[:30]
+                    if "паспорт" not in ln.lower()
+                    and not ln.startswith("--- page")
+                    and "заведующ" not in ln.lower()
+                    and "волкову" not in ln.lower()
+                ),
+                "UNKNOWN_CABINET",
+            )
     m_fact = FACTORY_RE.search(text)
     factory_number = normalize_factory_number(m_fact.group(1)) if m_fact else None
     return {"name": norm_space(name or "UNKNOWN_CABINET"), "factory_number": factory_number}
@@ -485,11 +536,11 @@ def parse_equipment_item(text: str, top_passport_number: str) -> list[dict]:
 
 def build_record(txt_path: Path, pdf_dirs: list[Path], use_layout_for_tables: bool) -> dict:
     text = txt_path.read_text(encoding="utf-8", errors="ignore")
-    doc_type = detect_doc_type(text, txt_path.name)
+    grouped_table = is_grouped_table_document(text, txt_path.name)
     parsing_text = text
     used_layout = False
 
-    if use_layout_for_tables and doc_type == "cabinet_passport":
+    if use_layout_for_tables and grouped_table:
         pdf_path = find_pdf_for_txt(txt_path, pdf_dirs)
         if pdf_path is not None:
             layout_text = extract_layout_text_from_pdf(pdf_path)
@@ -497,20 +548,20 @@ def build_record(txt_path: Path, pdf_dirs: list[Path], use_layout_for_tables: bo
                 parsing_text = layout_text
                 used_layout = True
 
-    if doc_type == "cabinet_passport":
+    if grouped_table:
         has_table_markers = any(
             re.search(patt, text, re.IGNORECASE)
             for patt in [r"№\s*п/?п", r"наименование документа", r"код позиции", r"перечень документации"]
         )
         # Для табличных документов берём данные из layout-текста (чтение слева-направо, сверху-вниз).
-        top_passport_number = extract_top_passport_number(parsing_text, doc_type)
+        top_passport_number = extract_top_passport_number(parsing_text, grouped_table=True)
         if has_table_markers:
             items = parse_cabinet_items(parsing_text, top_passport_number)
         else:
             items = parse_equipment_item(text, top_passport_number)
         # Если layout/OCR дал слишком мало строк таблицы, откатываемся на plain text.
         if has_table_markers and len(items) < 3:
-            fallback_top = extract_top_passport_number(text, doc_type)
+            fallback_top = extract_top_passport_number(text, grouped_table=True)
             fallback_items = parse_cabinet_items(text, fallback_top)
             if len(fallback_items) > len(items):
                 parsing_text = text
@@ -518,18 +569,18 @@ def build_record(txt_path: Path, pdf_dirs: list[Path], use_layout_for_tables: bo
                 top_passport_number = fallback_top
                 items = fallback_items
     else:
-        top_passport_number = extract_top_passport_number(text, doc_type)
+        top_passport_number = extract_top_passport_number(text, grouped_table=False)
         items = parse_equipment_item(text, top_passport_number)
 
     manufacturer = extract_manufacturer(parsing_text)
     page_count = max(1, text.count("--- page"))
 
     return {
-        "doc_type": doc_type,
+        "doc_type": "equipment_passport",
         "passport_number": top_passport_number,
         "issue_date": parse_issue_date(text),
         "manufacturer": manufacturer,
-        "cabinet": extract_cabinet(text, doc_type),
+        "cabinet": extract_cabinet(text, grouped_table),
         "barcode": None,
         "items": items,
         "source": {
@@ -558,7 +609,7 @@ def main() -> None:
         "--table-layout-mode",
         choices=["on", "off"],
         default="on",
-        help="Use coordinate-based OCR ordering for cabinet/table documents.",
+        help="Use coordinate-based OCR ordering for grouped/table documents.",
     )
     args = parser.parse_args()
 
