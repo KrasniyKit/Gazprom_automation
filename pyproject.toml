@@ -1,0 +1,21 @@
+[project]
+name = "gazprom-automation"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "kolykonon",email = "kononikhinnikolay@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi (>=0.135.3,<0.136.0)",
+    "pydantic (>=2.13.0,<3.0.0)",
+    "jsonschema (>=4.26.0,<5.0.0)",
+    "pytesseract (>=0.3.13,<0.4.0)",
+    "pdf2image (>=1.17.0,<2.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
