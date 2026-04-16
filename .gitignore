@@ -6,4 +6,6 @@
 /.obsidian
 /pdf
 .idea
-
+**/ocr_text/*
+**/labels/*
+**/raw/*
