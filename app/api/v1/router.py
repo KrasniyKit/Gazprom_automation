@@ -1,6 +1,7 @@
 import logging
 from fastapi import APIRouter
-from fastapi import UploadFile
+from fastapi import UploadFile, HTTPException
+from app.services.extract import process_passport_bytes, ExtractionError
 from app.core.exceptions import FileShouldBePDFException
 from app.utils.logs import log_execution_time
 
@@ -17,14 +18,20 @@ async def upload_passport(file: UploadFile):
     if not file.filename.endswith(".pdf"):
         logger.error('Error while downloading file: extension should be .pdf')
         raise FileShouldBePDFException()
+    
+    # Читаем байты файла
     pdf_bytes = await file.read()
-    # Здесь будет логика вызова сервиса по обработке PDF
-    # Пример:
-    # result = service.process_pdf()
-    # logger.info('Successfully uploaded pdf file with filename=%s',file.filename)
-    # return result
-    return {'result': 'Hello world!'}
 
-
-
-
+    try:
+        result = process_passport_bytes(pdf_bytes, filename=file.filename)
+        logger.info('Successfully extracted data from pdf file with filename=%s', file.filename)
+        return result
+    
+    except ExtractionError as e:
+        logger.error('Extraction failed for filename=%s: %s', file.filename, str(e))
+        raise HTTPException(status_code=422, detail=f"Ошибка оцифровки документа: {str(e)}")
+    
+    except Exception as e:
+        # Отлов непредвиденных ошибок (чтобы не сыпать трейсбеками в ответ API)
+        logger.error('Unexpected error for filename=%s: %s', file.filename, str(e))
+        raise HTTPException(status_code=500, detail="Внутренняя ошибка сервера при обработке файла")

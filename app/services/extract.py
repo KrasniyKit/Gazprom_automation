@@ -3,6 +3,7 @@
 Модуль оцифровки паспортов оборудования: PDF -> Изображения -> Qwen2.5-VL -> JSON
 """
 
+import base64
 import json
 import re
 import tempfile
@@ -37,34 +38,33 @@ class ExtractionError(Exception):
     pass
 
 
-class PDFToImageConverter:
-    """
-    Отвечает исключительно за рендеринг PDF в PNG файлы.
-    """
+class PDFRenderer:
+    """Конвертирует байты PDF в список строк Base64 (изображений)."""
     
     @staticmethod
-    def convert(pdf_path: Path, dpi: int = 200) -> list[Path]:
-        if not pdf_path.exists():
-            raise FileNotFoundError(f"PDF не найден: {pdf_path}")
-
-        temp_dir = tempfile.mkdtemp(prefix="passport_ocr_")
-        image_paths = []
-
+    def to_base64_images(pdf_bytes: bytes, dpi: int = 200) -> list[str]:
+        if not pdf_bytes:
+            raise ExtractionError("Пустые байты PDF.")
+            
+        images_b64 = []
         try:
-            doc = fitz.open(pdf_path)
-            for page_num in range(len(doc)):
-                page = doc.load_page(page_num)
+            # Открываем PDF напрямую из байтов!
+            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+            
+            for page in doc:
                 pix = page.get_pixmap(dpi=dpi)
-                
-                img_path = Path(temp_dir) / f"page_{page_num + 1}.png"
-                pix.save(str(img_path))
-                image_paths.append(img_path)
+                img_bytes = pix.tobytes("png")
+                # Кодируем картинку в Base64 строку
+                b64_str = base64.b64encode(img_bytes).decode("utf-8")
+                images_b64.append(b64_str)
                 
             doc.close()
         except Exception as e:
-            raise ExtractionError(f"Ошибка при рендеринге PDF: {e}")
+            raise ExtractionError(f"Ошибка рендеринга PDF: {e}")
+            
+        return images_b64
 
-        return image_paths
+
 
 
 class PassportExtractor:
@@ -76,14 +76,14 @@ class PassportExtractor:
         self._config = config
         self._client = ollama.Client(host=config.api_base)
 
-    def extract(self, image_paths: list[Path]) -> dict:
-        if not image_paths:
+    def extract(self, image_b64: list[Path]) -> dict:
+        if not image_b64:
             raise ExtractionError("Список изображений пуст.")
 
-        raw_content = self._call_vlm(image_paths)
+        raw_content = self._call_vlm(image_b64)
         return self._parse_json(raw_content)
 
-    def _call_vlm(self, image_paths: list[Path]) -> str:
+    def _call_vlm(self, image_b64: list[Path]) -> str:
         try:
             response = self._client.chat(
                 model=self._config.model,
@@ -94,7 +94,7 @@ class PassportExtractor:
                         "role": "user",
                         "content": "Проанализируй страницы паспорта оборудования и извлеки данные.",
                         # Магия Ollama: передаем пути к файлам, она сама делает Base64
-                        "images": [str(p) for p in image_paths]  
+                        "images": [str(p) for p in image_b64]  
                     }
                 ]
             )
@@ -126,42 +126,31 @@ class PassportExtractor:
 # ОРКЕСТРАТОР (Точка входа)
 # =============================================================================
 
-def process_passport_pdf(pdf_path: str | Path) -> dict:
+def process_passport_bytes(pdf_bytes: bytes, filename: str = "upload.pdf") -> dict:
     """
-    Полный пайплайн: принимает путь к PDF, возвращает готовый JSON.
+    Полный пайплайн: принимает байты PDF, возвращает готовый JSON.
     """
     pdf_path = Path(pdf_path)
     config = ExtractorConfig()
-    
-    converter = PDFToImageConverter()
     extractor = PassportExtractor(config)
 
-    image_paths = []
-    try:
-        print(f"📄 Конвертация PDF в изображения: {pdf_path.name}...")
-        image_paths = converter.convert(pdf_path, dpi=config.pdf_dpi)
-        print(f"🖼 Сконвертировано страниц: {len(image_paths)}")
+    print(f"📄 Рендеринг PDF в память: {pdf_path.name}...")
+    image_b64 = PDFRenderer.to_base64_images(pdf_bytes, dpi=config.pdf_dpi)
+    print(f"🖼 Сконвертировано страниц: {len(image_b64)}")
 
-        print("🧠 Отправка в Qwen2.5-VL для анализа (это может занять несколько секунд)...")
-        raw_data = extractor.extract(image_paths)
+    print("🧠 Отправка в Qwen2.5-VL для анализа (это может занять несколько секунд)...")
+    raw_data = extractor.extract(image_b64)
 
-        # Добавляем системные метаданные (source), которые LLM не должна генерировать
-        raw_data["source"] = {
-            "file_name": pdf_path.name,
-            "page_count": len(image_paths),
-            "ocr_engine": f"ollama-{config.model}"
-        }
+    # Добавляем системные метаданные (source), которые LLM не должна генерировать
+    raw_data["source"] = {
+        "file_name": filename,
+        "page_count": len(image_b64),
+        "ocr_engine": f"ollama-{config.model}"
+    }
 
-        print("✅ Данные успешно извлечены!")
-        return raw_data
+    print("✅ Данные успешно извлечены!")
+    return raw_data
 
-    finally:
-        # Убираем за собой временные картинки
-        if image_paths:
-            temp_dir = image_paths[0].parent
-            for img in image_paths:
-                img.unlink(missing_ok=True)
-            temp_dir.rmdir()
 
 
 # =============================================================================
