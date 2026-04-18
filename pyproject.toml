@@ -6,7 +6,7 @@ authors = [
     {name = "kolykonon",email = "kononikhinnikolay@gmail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.13,<3.14"
+requires-python = ">=3.12,<3.14"
 dependencies = [
     "fastapi (>=0.135.3,<0.136.0)",
     "pydantic (>=2.13.0,<3.0.0)",
@@ -14,7 +14,9 @@ dependencies = [
     "pytest (>=9.0.3,<10.0.0)",
     "pymupdf (>=1.27.2.2,<2.0.0.0)",
     "ollama (>=0.6.1,<0.7.0)",
-    "python-multipart (>=0.0.26,<0.0.27)"
+    "python-multipart (>=0.0.26,<0.0.27)",
+    "paddleocr (>=3.4.1,<4.0.0)",
+    "numpy (>=2.4.4,<3.0.0)"
 ]
 
 [tool.poetry]

@@ -12,7 +12,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 @router.post("/passport")
-@log_execution_time
+@log_execution_time(logger)
 async def upload_passport(file: UploadFile):
     logger.info('Started uploading pdf file with filename=%s',file.filename)
     if not file.filename.endswith(".pdf"):
