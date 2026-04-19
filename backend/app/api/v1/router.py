@@ -29,7 +29,8 @@ async def upload_passport(file: UploadFile):
     
     except ExtractionError as e:
         logger.error('Extraction failed for filename=%s: %s', file.filename, str(e))
-        raise HTTPException(status_code=422, detail=f"Ошибка оцифровки документа: {str(e)}")
+        error_text = str(e)
+        raise HTTPException(status_code=422, detail=f"Ошибка оцифровки документа: {error_text}")
     
     except Exception as e:
         logger.exception('Unexpected error for filename=%s', file.filename)
