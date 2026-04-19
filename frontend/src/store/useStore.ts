@@ -10,6 +10,7 @@ export type FileRecord = {
   status: FileStatus;
   passportId?: string;
   errorMessage?: string;
+  progress?: number; // upload progress 0-100
 };
 
 export type PassportRow = {
@@ -235,30 +236,45 @@ const useStore = create<Store>((set, get) => {
 
       set({ isUploading: true, uploadError: null });
 
-      for (const file of files) {
-        const fileId = makeId();
-        set((state) => ({
-          files: [
-            {
-              id: fileId,
-              name: file.name,
-              size: toFileSize(file.size),
-              status: 'processing',
-            },
-            ...state.files,
-          ],
-        }));
+      // Create file records immediately so UI shows processing state for all selected files
+      const newRecords = files.map((file) => ({
+        id: makeId(),
+        name: file.name,
+        size: toFileSize(file.size),
+        status: 'processing' as FileStatus,
+        progress: 0,
+      }));
 
+      set((state) => ({ files: [...newRecords, ...state.files] }));
+
+      // Prepare tasks linking input File to its record id
+      const tasks = newRecords.map((rec, i) => ({ file: files[i], recordId: rec.id }));
+
+      // concurrency control
+      const concurrency = 3; // parallel uploads
+      let idx = 0;
+
+      const runTask = async (task: { file: File; recordId: string }) => {
         try {
           const formData = new FormData();
-          formData.append('file', file);
+          // Send explicit filename + client id so backend can return stable file linkage
+          formData.append('file', task.file, task.file.name);
+          formData.append('client_file_id', task.recordId);
+          formData.append('original_file_name', task.file.name);
           const response = await axios.post(uploadUrl, formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
+            timeout: 0, // allow long-running requests
+            onUploadProgress: (ev: ProgressEvent) => {
+              const percent = ev.total ? Math.round((ev.loaded / ev.total) * 100) : 0;
+              set((state) => ({ files: state.files.map((f) => (f.id === task.recordId ? { ...f, progress: percent } : f)) }));
+            },
           });
 
-          const passport = mapPassportResponse(response.data, file);
+
+
+          const passport = mapPassportResponse(response.data, task.file);
           set((state) => ({
-            files: state.files.map((f) => (f.id === fileId ? { ...f, status: 'done', passportId: passport.id } : f)),
+            files: state.files.map((f) => (f.id === task.recordId ? { ...f, status: 'done', passportId: passport.id, progress: 100 } : f)),
             passports: [...state.passports, passport],
             originalPassports: { ...state.originalPassports, [passport.id]: { ...passport } },
           }));
@@ -269,13 +285,26 @@ const useStore = create<Store>((set, get) => {
               : 'Ошибка загрузки файла';
 
           set((state) => ({
-            files: state.files.map((f) => (f.id === fileId ? { ...f, status: 'error', errorMessage: message } : f)),
+            files: state.files.map((f) => (f.id === task.recordId ? { ...f, status: 'error', errorMessage: message, progress: 0 } : f)),
             uploadError: message,
           }));
         }
-      }
+      };
 
-      set({ isUploading: false });
+      const workers = new Array(Math.min(concurrency, tasks.length)).fill(null).map(async () => {
+        while (true) {
+          const i = idx++;
+          if (i >= tasks.length) break;
+          // eslint-disable-next-line no-await-in-loop
+          await runTask(tasks[i]);
+        }
+      });
+
+      try {
+        await Promise.all(workers);
+      } finally {
+        set({ isUploading: false });
+      }
     },
 
     exportSelectedToExcel: async (deleteAfterExport) => {
