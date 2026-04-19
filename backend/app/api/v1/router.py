@@ -1,9 +1,9 @@
 import logging
 from fastapi import APIRouter
 from fastapi import UploadFile, HTTPException
-from app.services.extract import process_passport_bytes, ExtractionError
-from app.core.exceptions import FileShouldBePDFException
-from app.utils.logs import log_execution_time
+from backend.app.services.extract import process_passport_bytes, ExtractionError
+from backend.app.core.exceptions import FileShouldBePDFException
+from backend.app.utils.logs import log_execution_time
 
 
 router = APIRouter(prefix="/api/v1", tags=["API"])

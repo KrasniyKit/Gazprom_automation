@@ -13,7 +13,7 @@ import numpy as np
 import ollama
 from paddleocr import PaddleOCR
 
-from app.core.schemas import PassportResponseSchema
+from backend.app.core.schemas import PassportResponseSchema
 
 # =============================================================================
 # КОНФИГУРАЦИЯ И ПРОМПТ

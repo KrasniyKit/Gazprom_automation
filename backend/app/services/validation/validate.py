@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pydantic import ValidationError
 
-from app.core.schemas import PassportResponseSchema
+from backend.app.core.schemas import PassportResponseSchema
 from app.exceptions import LLMExtractionError
 
 
