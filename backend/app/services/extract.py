@@ -4,6 +4,7 @@
 """
 
 import json
+import os
 import re
 from pathlib import Path
 from dataclasses import dataclass
@@ -13,7 +14,7 @@ import numpy as np
 import ollama
 from paddleocr import PaddleOCR
 
-from backend.app.core.schemas import PassportResponseSchema
+from app.core.schemas import PassportResponseSchema
 
 # =============================================================================
 # КОНФИГУРАЦИЯ И ПРОМПТ
@@ -21,8 +22,8 @@ from backend.app.core.schemas import PassportResponseSchema
 
 @dataclass
 class ExtractorConfig:
-    model: str = "qwen2.5:7b"  # ТЕПЕРЬ ТЕКСТОВАЯ МОДЕЛЬ! (Не vl)
-    api_base: str = "http://localhost:11434"
+    model: str = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
+    api_base: str = os.getenv("OLLAMA_HOST", "http://ollama:11434")
     pdf_dpi: int = 200
 
 
@@ -70,7 +71,7 @@ class OCRExtractor:
     def __init__(self):
         # use_angle_cls=True — поворачивает текст, если скан кривой
         # show_log=False — убирает спам в консоли
-        self._ocr = PaddleOCR(use_angle_cls=True, lang='ru', show_log=False)
+        self._ocr = PaddleOCR(use_angle_cls=True, lang='ru')
 
     def extract_text(self, images: list[np.ndarray]) -> str:
         if not images:
@@ -125,7 +126,35 @@ class PassportExtractor:
             )
             return response['message']['content']
         except Exception as e:
+            if self._is_missing_model_error(e):
+                self._pull_model()
+                try:
+                    response = self._client.chat(
+                        model=self._config.model,
+                        format='json',
+                        messages=[
+                            {"role": "system", "content": SYSTEM_PROMPT},
+                            {
+                                "role": "user",
+                                "content": f"Вот сырой текст из OCR паспорта оборудования:\n\n{ocr_text}"
+                            }
+                        ]
+                    )
+                    return response['message']['content']
+                except Exception as retry_error:
+                    raise ExtractionError(f"Ошибка вызова Ollama API после загрузки модели: {retry_error}")
             raise ExtractionError(f"Ошибка вызова Ollama API: {e}")
+
+    def _pull_model(self) -> None:
+        try:
+            self._client.pull(model=self._config.model, stream=False)
+        except Exception as e:
+            raise ExtractionError(f"Не удалось загрузить модель {self._config.model}: {e}")
+
+    @staticmethod
+    def _is_missing_model_error(error: Exception) -> bool:
+        error_text = str(error).lower()
+        return "model" in error_text and "not found" in error_text
 
     @staticmethod
     def _parse_json(content: str) -> dict:

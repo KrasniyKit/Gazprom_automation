@@ -1,0 +1,13 @@
+*.DS_Store
+/zadanie
+**/__pycache__
+/.venv
+/.github
+/.obsidian
+/pdf
+.idea
+**/ocr_text/*
+**/labels/*
+**/raw/*
+/.vscode
+/.pytest_cache

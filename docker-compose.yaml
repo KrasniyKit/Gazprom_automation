@@ -1,11 +1,30 @@
 services:
-  ocr_extractor:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: ocr_extractor
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama_server
+    command: ["serve"]
+    tty: true
+    stdin_open: true
     ports:
-      - "9099:9099"
+      - "11434:11434"
     volumes:
-      - ./app:code/app
-    restart: unless-stopped
+      - ollama_data:/root/.ollama
+
+  backend:
+    build:
+      context: .           # Сборка идет из корня проекта
+      dockerfile: Dockerfile
+    container_name: passport_api
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=qwen2.5:7b
+    depends_on:
+      - ollama
+    # Раскомментируйте для Hot-Reload (чтобы изменения в коде применялись сразу)
+    # volumes:
+    #   - ./backend/app:/app/app
+
+volumes:
+  ollama_data:

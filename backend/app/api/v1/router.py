@@ -1,9 +1,9 @@
 import logging
 from fastapi import APIRouter
 from fastapi import UploadFile, HTTPException
-from backend.app.services.extract import process_passport_bytes, ExtractionError
-from backend.app.core.exceptions import FileShouldBePDFException
-from backend.app.utils.logs import log_execution_time
+from app.services.extract import process_passport_bytes, ExtractionError
+from app.core.exceptions import FileShouldBePDFException
+from app.utils.logs import log_execution_time
 
 
 router = APIRouter(prefix="/api/v1", tags=["API"])
@@ -32,6 +32,5 @@ async def upload_passport(file: UploadFile):
         raise HTTPException(status_code=422, detail=f"Ошибка оцифровки документа: {str(e)}")
     
     except Exception as e:
-        # Отлов непредвиденных ошибок (чтобы не сыпать трейсбеками в ответ API)
-        logger.error('Unexpected error for filename=%s: %s', file.filename, str(e))
-        raise HTTPException(status_code=500, detail="Внутренняя ошибка сервера при обработке файла")
+        logger.exception('Unexpected error for filename=%s', file.filename)
+        raise HTTPException(status_code=500, detail=f"Внутренняя ошибка сервера: {str(e)}")
