@@ -1,0 +1,35 @@
+{
+    "doc_type": "equipment_passport",
+    "passport_number": "",
+    "issue_date":  "null",
+    "cabinet": null,
+    "barcode": {
+        "type": "Code39",
+        "value": "1234"
+    },
+    "items": [
+        {
+            "line_number" : "1",
+            "name": "Контроллер многофункциональный МФК1500",
+            "passport_number": "БНРД.434400.046ПС",
+            "factory_number": "null",
+            "pages_count": "4",
+            "certificate_count": "1"
+        },
+        {
+            "line_number" : "2",
+            "name": "Контроллер многофункциональный МФК1500",
+            "passport_number": "БНРД.434400.046ПС",
+            "factory_number": "null",
+            "pages_count": "4",
+            "certificate_count": "1"
+        }
+    ],
+    "source": {
+        "file_name": "Приложение 3 к задаче 1 Групповой паспорт TECON TCC 8L 1.pdf",
+        "page_count": "0",
+        "ocr_engine": "tesseract",
+        "ocr_confidence": "0.85"
+    },
+    "notes": "null"
+}

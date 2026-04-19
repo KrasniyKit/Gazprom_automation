@@ -1,0 +1,75 @@
+
+:root{
+  --primary: #002a5d;
+  --surface: #f9f9ff;
+}
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+  background: var(--surface);
+  color: #0f1630;
+}
+
+.tech-font, .font-tech {
+  font-family: 'Berkeley Mono', monospace;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: #fff;
+  color: inherit;
+  transition: background .12s ease, color .12s ease, box-shadow .12s ease;
+}
+
+.btn--primary {
+  background: var(--primary);
+  color: #fff;
+  border-color: rgba(0,0,0,0.05);
+}
+
+.btn:focus, .btn:active {
+  box-shadow: 0 0 0 4px rgba(0,42,93,0.08);
+}
+
+.material-symbols-outlined {
+  /* keep default size, allow variation via fontVariationSettings */
+  font-variation-settings: 'FILL' 0;
+  font-feature-settings: 'liga';
+  font-size: 20px;
+  line-height: 1;
+}
+
+/* Layout: reserve space for fixed sidebar */
+main {
+  margin-left: 244px; /* sidebar width */
+  min-width: calc(100% - 220px);
+  box-sizing: border-box;
+  min-height: 100vh;
+}
+
+/* Allow content within main to shrink if inside flex containers */
+main * {
+  min-width: 0;
+}
+
+/* Page content helper — components can use .page__content for consistent padding */
+.page__content {
+  height: 100%;
+  padding: 32px;
+}
+
+/* Ensure wide tables can scroll horizontally without breaking layout */
+.cards__table-wrap, .table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}

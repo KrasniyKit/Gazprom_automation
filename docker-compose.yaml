@@ -1,0 +1,52 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: ollama_server
+    command: ["serve"]
+    tty: true
+    stdin_open: true
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+
+  backend:
+    build:
+      context: .           # Сборка идет из корня проекта
+      dockerfile: Dockerfile
+    container_name: passport_api
+    ports:
+      - "8000:8000"
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+      - OLLAMA_MODEL=qwen2.5:7b
+    depends_on:
+      - ollama
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+    # Раскомментируйте для Hot-Reload (чтобы изменения в коде применялись сразу)
+    # volumes:
+    #   - ./backend/app:/app/app
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ""
+        VITE_UPLOAD_ENDPOINT: /api/v1/passport
+    container_name: passport_frontend
+    ports:
+      - "8081:80"
+    environment:
+      API_UPSTREAM: backend:8000
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  ollama_data:

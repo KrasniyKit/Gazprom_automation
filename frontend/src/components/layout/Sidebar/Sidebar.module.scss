@@ -1,0 +1,80 @@
+@use '../../../styles/_variables.scss' as *;
+
+.sidebar {
+  width: 220px;
+  position: fixed;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: $color-primary-strong;
+  padding: 24px 12px;
+  color: $white;
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.sidebar__logo {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.15);
+  border-radius: 6px;
+}
+
+.sidebar__title-name {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.sidebar__title-sub {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.sidebar__nav {
+  flex: 1;
+  padding: 8px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sidebar__item {
+}
+
+.sidebar__link {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 10px 12px;
+  color: rgba($white, 0.85);
+  border-radius: 6px;
+  text-decoration: none;
+}
+
+.sidebar__link:hover {
+  background: rgba($white, 0.04);
+  color: $white;
+}
+
+.sidebar__link--active {
+  background: rgba($white, 0.06);
+  border-left: 4px solid $white;
+  color: $white;
+}
+
+.sidebar__footer {
+  font-size: 12px;
+  opacity: 0.75;
+  margin-top: auto;
+  padding-left: 12px;
+}

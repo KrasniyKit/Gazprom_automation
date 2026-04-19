@@ -1,0 +1,43 @@
+@use '../../../styles/_variables.scss' as *;
+
+.app-header {
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid $border-strong;
+  background: $white;
+}
+
+.app-header__title {
+  font-weight: 700;
+  color: $color-primary;
+  font-size: 18px;
+}
+
+.app-header__left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-header__right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-right: 24px;
+}
+
+.app-header__icon {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.app-header__avatar img {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+}

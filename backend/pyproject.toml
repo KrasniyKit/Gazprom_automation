@@ -1,0 +1,32 @@
+[project]
+name = "gazprom-automation"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "kolykonon",email = "kononikhinnikolay@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.12,<3.14"
+dependencies = [
+    "fastapi (>=0.135.3,<0.136.0)",
+    "pydantic (>=2.13.0,<3.0.0)",
+    "jsonschema (>=4.23.0,<5.0.0)",
+    "pytest (>=9.0.3,<10.0.0)",
+    "pymupdf (>=1.27.2.2,<2.0.0.0)",
+    "ollama (>=0.6.1,<0.7.0)",
+    "python-multipart (>=0.0.26,<0.0.27)",
+    "paddleocr (>=3.4.1,<4.0.0)",
+    "numpy (>=1.24.4,<2.0.0)",
+    "uvicorn (>=0.44.0,<0.45.0)",
+    "paddlepaddle (>=3.3.1,<4.0.0)"
+]
+
+[tool.poetry]
+package-mode = false
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
