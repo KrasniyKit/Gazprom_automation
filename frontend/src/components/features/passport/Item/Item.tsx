@@ -1,9 +1,9 @@
 import React from 'react';
 import sharedStyles from '../PassportTable/PassportTable.module.scss';
 import Cell from '../Cell';
-import styles from './Item.module.scss';
 
 type Row = {
+  id: string;
   name: string;
   code: string;
   factoryNumber: string;
@@ -18,8 +18,8 @@ type Props = {
   row: Row;
   idx: number;
   selected: boolean;
-  toggleRow: (i: number) => void;
-  onFieldChange: (index: number, field: keyof Row, value: string) => void;
+  toggleRow: (id: string) => void;
+  onFieldChange: (id: string, field: keyof Row, value: string) => void;
 };
 
 const Item: React.FC<Props> = ({ row, idx, selected, toggleRow, onFieldChange }) => {
@@ -28,21 +28,19 @@ const Item: React.FC<Props> = ({ row, idx, selected, toggleRow, onFieldChange })
     .filter(Boolean)
     .join(' ');
 
-  const slugify = (s: string) => encodeURIComponent(s.replace(/\s+/g, '-').toLowerCase());
-
   return (
-    <tr id={`passport-${slugify(row.name)}`} className={rowClass}>
+    <tr id={`passport-${encodeURIComponent(row.id)}`} className={rowClass}>
       <td>
-        <input type="checkbox" checked={selected} onChange={() => toggleRow(idx)} />
+        <input type="checkbox" checked={selected} onChange={() => toggleRow(row.id)} />
       </td>
       <td>{idx + 1}</td>
 
-      <Cell value={row.name} onChange={(v) => onFieldChange(idx, 'name', v)} uncertain={!!row.uncertainFields?.name} />
-      <Cell value={row.code} onChange={(v) => onFieldChange(idx, 'code', v)} uncertain={!!row.uncertainFields?.code} />
-      <Cell value={row.factoryNumber} onChange={(v) => onFieldChange(idx, 'factoryNumber', v)} uncertain={!!row.uncertainFields?.factoryNumber} />
-      <Cell value={row.manufacturer} onChange={(v) => onFieldChange(idx, 'manufacturer', v)} uncertain={!!row.uncertainFields?.manufacturer} />
-      <Cell value={row.date} onChange={(v) => onFieldChange(idx, 'date', v)} uncertain={!!row.uncertainFields?.date} />
-      <Cell value={row.warranty} onChange={(v) => onFieldChange(idx, 'warranty', v)} uncertain={!!row.uncertainFields?.warranty} />
+      <Cell value={row.name} onChange={(v) => onFieldChange(row.id, 'name', v)} uncertain={!!row.uncertainFields?.name} />
+      <Cell value={row.code} onChange={(v) => onFieldChange(row.id, 'code', v)} uncertain={!!row.uncertainFields?.code} />
+      <Cell value={row.factoryNumber} onChange={(v) => onFieldChange(row.id, 'factoryNumber', v)} uncertain={!!row.uncertainFields?.factoryNumber} />
+      <Cell value={row.manufacturer} onChange={(v) => onFieldChange(row.id, 'manufacturer', v)} uncertain={!!row.uncertainFields?.manufacturer} />
+      <Cell value={row.date} onChange={(v) => onFieldChange(row.id, 'date', v)} uncertain={!!row.uncertainFields?.date} />
+      <Cell value={row.warranty} onChange={(v) => onFieldChange(row.id, 'warranty', v)} uncertain={!!row.uncertainFields?.warranty} />
 
       <td className={sharedStyles['cards__file']}>
         <div className={sharedStyles['cards__file-name']}>{row.sourceFile ?? '—'}</div>

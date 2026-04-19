@@ -1,6 +1,5 @@
 import React from 'react';
 import sharedStyles from '../PassportTable/PassportTable.module.scss';
-import styles from './Cell.module.scss';
 
 type Props = {
   value: string;

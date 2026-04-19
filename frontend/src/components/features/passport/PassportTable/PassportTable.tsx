@@ -1,45 +1,15 @@
-import React, { useState } from 'react';
+import React from 'react';
 import styles from './PassportTable.module.scss';
 import Item from '../Item';
 import useStore from '@/store/useStore';
 
-export type PassportProps = {
-  selectAll: boolean;
-  selectedRows: boolean[];
-  toggleAll: () => void;
-  toggleRow: (i: number) => void;
-  openExport: () => void;
-};
-
-const PassportTable: React.FC<PassportProps> = ({ selectAll, selectedRows, toggleAll, toggleRow, openExport }) => {
-  type Row = {
-    name: string;
-    code: string;
-    factoryNumber: string;
-    manufacturer: string;
-    date: string;
-    warranty: string;
-    sourceFile?: string;
-    // optional flags from OCR indicating uncertain fields
-    uncertainFields?: Partial<Record<'name' | 'code' | 'factoryNumber' | 'manufacturer' | 'date' | 'warranty', boolean>>;
-  };
-
-  const initialRows: Row[] = [
-    { name: 'Название 1', code: 'Код-1', factoryNumber: '10245-A', manufacturer: 'Производитель', date: '2023-01-01', warranty: '24 мес.', sourceFile: 'passport_eq_001.pdf' },
-    { name: 'Название 2', code: 'Код-2', factoryNumber: '', manufacturer: 'Производитель', date: '2023-01-01', warranty: '24 мес.', uncertainFields: { factoryNumber: true }, sourceFile: 'technical_spec_v2.pdf' },
-    { name: 'Название 3', code: 'Код-3', factoryNumber: '33910', manufacturer: 'Производитель', date: '2023-01-01', warranty: '24 мес.', sourceFile: 'manual_pump_z400.pdf' },
-    { name: 'Название 4', code: 'Код-4', factoryNumber: '10245-A', manufacturer: 'Производитель', date: '2023-01-01', warranty: '24 мес.', sourceFile: 'corrupted_file.pdf' },
-  ];
-
-  const [rows, setRows] = useState<Row[]>(initialRows);
-
-  const handleChange = (index: number, field: keyof Row, value: string) => {
-    setRows(prev => {
-      const next = [...prev];
-      next[index] = { ...next[index], [field]: value };
-      return next;
-    });
-  };
+const PassportTable: React.FC = () => {
+  const selectAll = useStore((s) => s.selectAll);
+  const selectedIds = useStore((s) => s.selectedIds);
+  const toggleAll = useStore((s) => s.toggleAll);
+  const toggleRow = useStore((s) => s.toggleRow);
+  const passports = useStore((s) => s.passports);
+  const updateRowField = useStore((s) => s.updateRowField);
 
   return (
     <div className={styles['cards__table-wrap']}>
@@ -58,14 +28,14 @@ const PassportTable: React.FC<PassportProps> = ({ selectAll, selectedRows, toggl
           </tr>
         </thead>
         <tbody>
-          {rows.map((row, idx) => (
+          {passports.map((row, idx) => (
             <Item
-              key={idx}
+              key={row.id}
               row={row}
               idx={idx}
-              selected={!!selectedRows[idx]}
+              selected={selectedIds.includes(row.id)}
               toggleRow={toggleRow}
-              onFieldChange={handleChange}
+              onFieldChange={updateRowField}
             />
           ))}
         </tbody>

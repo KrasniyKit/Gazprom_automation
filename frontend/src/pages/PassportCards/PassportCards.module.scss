@@ -180,6 +180,19 @@
   padding: 16px;
 }
 
+.export-modal__option {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.export-modal__error {
+  margin: 12px 0 0;
+  color: $danger-dark;
+  font-size: 13px;
+}
+
 .export-modal__footer {
   padding: 12px;
   display: flex;
