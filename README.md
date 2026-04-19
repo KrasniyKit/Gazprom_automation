@@ -1,228 +1,152 @@
 # Gazprom Automation
 
-Сервис для оцифровки PDF-паспортов оборудования:  
-**PDF -> OCR (PaddleOCR) -> LLM (Ollama/Qwen) -> структурированный JSON -> frontend-таблица/экспорт**.
+Сервис оцифровки PDF-паспортов оборудования: **PDF -> Ollama (Qwen) -> JSON -> UI**.
 
-## 1. Что внутри
+## 1. Запуск всего проекта (пошагово)
 
-- **Backend (FastAPI)**: принимает PDF, извлекает текст, вызывает LLM, валидирует схему.
-- **Ollama**: хостит локальную LLM-модель (`qwen2.5:7b` по умолчанию).
-- **Frontend (React + Vite)**: загрузка PDF, просмотр карточек, экспорт в Excel.
+### Шаг 1. Запуск всего приложения (frontend + backend + Ollama)
 
----
-
-## 2. Быстрый старт (рекомендуемый путь) — Docker Compose
-
-### Требования
-
-- Docker + Docker Compose
-
-### Запуск
+Из корня репозитория:
 
 ```bash
 docker compose up -d --build
 ```
 
-### Проверка, что сервисы поднялись
+Проверка backend:
 
 ```bash
 curl http://localhost:8000/health
 curl http://localhost:8000/health/ready
 ```
 
-- `/health` -> backend жив
-- `/health/ready` -> backend видит Ollama и нужную модель загруженной
+### Шаг 2. Открыть сайт сервиса
 
-> На **первом запуске** модель может скачиваться несколько минут.
+Открыть в браузере: **http://localhost:8081**
 
-### Остановка
+### Шаг 3. Остановка
 
 ```bash
 docker compose down
 ```
 
-### Важно про модель
+---
 
-Модель Ollama хранится в volume `ollama_data`, поэтому после перезапуска контейнеров она обычно **не скачивается заново**.
+## 2. Что внутри
+
+- **Backend (FastAPI)**: `POST /api/v1/passport`
+- **Ollama**: модель по умолчанию `qwen2.5vl:7b`
+- **Frontend (React + Vite + Nginx)**: загрузка PDF и просмотр результата
 
 ---
 
-## 3. Локальный запуск backend (без Docker)
-
-Из директории `backend`:
-
-```bash
-poetry install
-poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000
-```
-
-Если Ollama запущен локально на хосте:
-
-```bash
-export OLLAMA_HOST=http://localhost:11434
-export OLLAMA_MODEL=qwen2.5:7b
-```
-
----
-
-## 4. Локальный запуск frontend
-
-Из директории `frontend`:
-
-```bash
-npm install
-npm run dev
-```
-
-По умолчанию frontend использует `VITE_UPLOAD_ENDPOINT=/api/passports/upload`.  
-Для текущего backend endpoint нужно задать:
-
-```bash
-export VITE_API_URL=http://localhost:8000
-export VITE_UPLOAD_ENDPOINT=/api/v1/passport
-```
-
----
-
-## 5. Переменные окружения
+## 3. Переменные окружения 
 
 ### Backend
 
 | Переменная | По умолчанию | Назначение |
 |---|---|---|
-| `OLLAMA_HOST` | `http://ollama:11434` | Адрес Ollama API |
+| `OLLAMA_HOST` | `http://ollama:11434` | Адрес Ollama |
 | `OLLAMA_MODEL` | `qwen2.5:7b` | Имя модели |
-| `PDF_DPI` | `170` | DPI для рендера PDF перед OCR (`100..300`) |
+| `PDF_DPI` | `170` | DPI рендера PDF (`100..300`) |
 
 ### Frontend
-
-| Переменная | По умолчанию | Назначение |
-|---|---|---|
-| `VITE_API_URL` | `""` | Базовый URL backend |
-| `VITE_UPLOAD_ENDPOINT` | `/api/passports/upload` | Endpoint загрузки PDF (рекомендуется `/api/v1/passport`) |
+ 
+ - VITE_API_URL (build-time)
+   - Базовый URL API, используется в сборке Vite (доступен как `import.meta.env.VITE_API_URL`).
+   - Если пустая строка — фронт будет обращаться по относительным путям (через nginx proxy).
+   - Пример: VITE_API_URL="http://backend:8000"
+ 
+ - VITE_UPLOAD_ENDPOINT (build-time)
+   - Путь или полный URL эндпойнта загрузки файлов, например /api/v1/passport или http://backend:8000/api/v1/passport.
+   - Встраивается в бандл во время vite build.
+   - Пример: VITE_UPLOAD_ENDPOINT="/api/v1/passport"
+ 
+ > Важно: переменные, начинающиеся с VITE_, читаются в коде на этапе сборки. Изменение переменных после сборки не поменяет поведение уже собранного фронта.
+ 
+ - API_UPSTREAM (runtime, nginx)
+   - Используется в nginx.conf.template внутри фронт-контейнера — nginx будет проксировать запросы /api/* на этот хост:порт.
+   - Пример в docker-compose.yml:
+     
+     services:
+       frontend:
+         build:
+           context: ./frontend
+           args:
+             VITE_API_URL: ""
+             VITE_UPLOAD_ENDPOINT: /api/v1/passport
+         environment:
+           API_UPSTREAM: backend:8000
+     
+   - Задаётся как переменная окружения контейнера (runtime) — её значение влияет на nginx proxy, а не на скомпилированный JS.
+ 
+ #### Примечания
+ - Для локальной разработки с vite dev можно использовать .env / .env.local с теми же переменными (Vite подхватит их).
+ - Если фронт развёрнут в Docker и nginx проксирует запросы на backend, оставляй VITE_API_URL пустым и используй API_UPSTREAM для привязки к сервису в docker-compose.
 
 ---
 
-## 6. API: как использовать
+## 4. API
 
 ### POST `/api/v1/passport`
-
-Принимает `multipart/form-data` с полем `file` (PDF).
-
-Пример:
 
 ```bash
 curl -X POST "http://localhost:8000/api/v1/passport" \
   -F "file=@/absolute/path/to/passport.pdf"
 ```
 
-Типовые ответы:
+Коды ответа:
+- `200` — успех
+- `400` — не PDF
+- `422` — ошибка извлечения/валидации
 
-- `200` — успешная оцифровка и валидный JSON
-- `400` — загружен не-PDF
-- `422` — ошибка извлечения/валидации данных
-
-### GET `/health`
+### Health endpoints
 
 ```bash
 curl http://localhost:8000/health
-```
-
-### GET `/health/ready`
-
-```bash
 curl http://localhost:8000/health/ready
 ```
 
 ---
 
-## 7. Тесты и базовые проверки
+## 5. Локальный запуск без Docker (опционально)
 
 ### Backend
 
 ```bash
 cd backend
-poetry run pytest -q
+poetry install
+poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000
 ```
 
 ### Frontend
 
 ```bash
 cd frontend
-npm run lint
-npm run build
+npm install
+npm run dev
 ```
 
 ---
 
-## 8. Типовые сценарии использования
-
-### Сценарий A: первый запуск проекта
-
-1. `docker compose up -d --build`
-2. Дождаться загрузки модели в Ollama (может занять время)
-3. Проверить `/health/ready`
-4. Отправить первый PDF на `/api/v1/passport`
-
-### Сценарий B: повторная обработка PDF
-
-1. Отправлять новые PDF на тот же endpoint
-2. Повторные запросы обычно быстрее (после прогрева модели/OCR)
-
-### Сценарий C: смена модели
-
-1. Изменить `OLLAMA_MODEL` в `docker-compose.yaml` или env
-2. Перезапустить backend:
+## 6. Тесты
 
 ```bash
-docker compose up -d --build backend
+cd backend
+poetry run pytest -q
 ```
-
-3. Проверить `/health/ready`
-
-### Сценарий D: запуск frontend + backend локально
-
-1. Поднять backend/Ollama
-2. Запустить frontend с `VITE_API_URL` и `VITE_UPLOAD_ENDPOINT=/api/v1/passport`
-3. Загружать PDF через UI
 
 ---
 
-## 9. Troubleshooting
+## 7. Частые проблемы
 
-### `could not open a new TTY: open /dev/tty`
+- **`model ... not found`**  
+  Модель не скачана:
+  ```bash
+  docker exec -it ollama_server ollama pull qwen2.5vl:7b
+  ```
 
-Причина: запуск интерактивного launcher без TTY.  
-Решение: запускать Ollama сервером (`ollama serve`) и/или через Docker Compose.
+- **Очень долгий первый запрос**  
+  Нормально для первого запуска (скачивание/прогрев модели).
 
-### `model '...' not found (404)`
-
-Причина: модель не загружена.  
-Решение: дождаться авто-pull на старте backend или вручную:
-
-```bash
-docker exec -it ollama_server ollama pull qwen2.5:7b
-```
-
-### Первый запрос очень долгий
-
-Это нормально для первого прохода (скачивание/прогрев/загрузка в RAM).  
-Проверьте логи `ollama_server`.
-
-### `422` с ошибками валидации полей
-
-Значит LLM вернула невалидные типы/поля.  
-В проекте есть нормализация перед schema validation, но для сложных кейсов проверьте OCR-текст и промпт.
-
-### `/health/ready` возвращает 503
-
-Проверьте:
-1. Доступен ли Ollama (`OLLAMA_HOST`)
-2. Загружена ли модель (`OLLAMA_MODEL`)
-
----
-
-## 10. Что не покрыто этим README
-
-- CI/CD пайплайны
-- Production deployment и инфраструктурные best practices
+- **`/health/ready` = 503**  
+  Проверьте `OLLAMA_HOST`, `OLLAMA_MODEL` и логи `ollama_server`.

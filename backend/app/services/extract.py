@@ -1,24 +1,15 @@
-#!/usr/bin/env python3
-"""
-Модуль оцифровки: PDF -> PaddleOCR -> Qwen2.5 (Text LLM) -> JSON (ГОСТ 2.601-2013)
-"""
-
 import json
 import os
 import re
 from pathlib import Path
 from dataclasses import dataclass
 
-import fitz  # PyMuPDF 
+import fitz 
 import numpy as np
 import ollama
 from paddleocr import PaddleOCR
 
 from app.core.schemas import PassportResponseSchema
-
-# =============================================================================
-# КОНФИГУРАЦИЯ И ПРОМПТ
-# =============================================================================
 
 def _read_pdf_dpi() -> int:
     raw_value = os.getenv("PDF_DPI", "170")
@@ -42,11 +33,6 @@ try:
 except FileNotFoundError:
     SYSTEM_PROMPT = "Извлеки данные из текста."
 
-
-# =============================================================================
-# КЛАССЫ ЛОГИКИ
-# =============================================================================
-
 class ExtractionError(Exception):
     pass
 
@@ -64,7 +50,6 @@ class PDFRenderer:
             doc = fitz.open(stream=pdf_bytes, filetype="pdf")
             for page in doc:
                 pix = page.get_pixmap(dpi=dpi)
-                # Конвертируем pixmap в numpy array (PaddleOCR ест только numpy/PIL)
                 img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
                 images.append(img)
             doc.close()
@@ -78,8 +63,6 @@ class OCRExtractor:
     """Отвечает за распознавание текста через PaddleOCR."""
     
     def __init__(self):
-        # use_angle_cls=True — поворачивает текст, если скан кривой
-        # show_log=False — убирает спам в консоли
         self._ocr = PaddleOCR(use_angle_cls=True, lang='ru')
 
     def extract_text(self, images: list[np.ndarray]) -> str:
@@ -93,12 +76,10 @@ class OCRExtractor:
                 if not result or not result[0]:
                     continue
                 
-                # Сортируем блоки по Y (сверху вниз), затем по X (слева направо)
-                # Это сохраняет логическую структуру чтения документа
                 lines = sorted(result[0], key=lambda x: (x[0][0][1], x[0][0][0]))
                 
                 for line in lines:
-                    text = line[1][0]  # Сам текст
+                    text = line[1][0]
                     full_text.append(text)
                     
         except Exception as e:
@@ -237,10 +218,6 @@ class PassportExtractor:
             raise ExtractionError("Модель вернула невалидный JSON.")
 
 
-# =============================================================================
-# ОРКЕСТРАТОР
-# =============================================================================
-
 def process_passport_bytes(pdf_bytes: bytes, filename: str = "upload.pdf") -> dict:
     """
     Полный пайплайн: PDF -> Numpy -> OCR -> LLM -> Валидированный JSON.
@@ -261,14 +238,12 @@ def process_passport_bytes(pdf_bytes: bytes, filename: str = "upload.pdf") -> di
     print("🧠 Отправка текста в Qwen2.5 для извлечения полей ГОСТ...")
     raw_data = _normalize_raw_data(extractor.extract(ocr_text))
 
-    # Добавляем системные метаданные
     raw_data["source"] = {
         "file_name": filename,
         "page_count": len(images),
         "ocr_engine": "paddleocr + qwen2.5"
     }
 
-    # Валидация по ГОСТ схеме
     try:
         validated_passport = PassportResponseSchema.model_validate(raw_data)
         print("✅ Данные успешно извлечены и провалидированы!")

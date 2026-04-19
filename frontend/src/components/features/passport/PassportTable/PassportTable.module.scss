@@ -10,25 +10,22 @@
 .cards__table {
   width: 100%;
   border-collapse: collapse;
-  table-layout: auto; /* let columns size naturally; allow horizontal scroll when table wider than container */
-  min-width: 1400px; /* default wide table so columns have reasonable space */
+  table-layout: auto; 
+  min-width: 1400px; 
 }
 
-/* scrollable container around the table so the page itself doesn't scroll */
 .cards__scroll {
   overflow: auto;
   -webkit-overflow-scrolling: touch;
   width: 100%;
 }
 
-/* prefer natural wrapping but avoid forcing extremely long words to expand layout */
 .cards__table thead th,
 .cards__table tbody td {
   word-break: break-word;
   overflow-wrap: anywhere;
 }
 
-/* Assign minimum widths to important columns (adjust if needed) */
 
 .cards__table th:nth-child(1),
 .cards__table td:nth-child(1) { min-width: 120px; }
@@ -55,7 +52,6 @@
 .cards__table th:nth-child(13),
 .cards__table td:nth-child(13) { min-width: 220px; } /* source/file */
 
-/* ensure file name truncation stays usable */
 .cards__file-name { max-width: 220px; }
 
 
@@ -80,7 +76,7 @@
   padding: 6px;
   width: 100%;
   box-sizing: border-box;
-  min-width: 0; /* allow flex items to shrink when badge is present */
+  min-width: 0; 
 }
 
 .cards__warn {
@@ -102,14 +98,14 @@
   position: relative;
 }
 
-/* layout container so input and badge sit on same row */
+
 .cards__cell--warn > div {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-/* make the input a flexible item so it doesn't push the badge to the next line */
+
 .cards__cell--warn .cards__input {
   flex: 1 1 auto;
   width: auto;
@@ -125,7 +121,7 @@
   color: $warn-amber;
   padding: 4px 8px;
   border-radius: 6px;
-  font-size: 0.8125rem; /* 13px */
+  font-size: 0.8125rem; 
 }
 
 .cards__uncertain-badge .material-symbols-outlined {

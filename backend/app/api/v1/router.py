@@ -19,7 +19,6 @@ async def upload_passport(file: UploadFile):
         logger.error('Error while downloading file: extension should be .pdf')
         raise FileShouldBePDFException()
     
-    # Читаем байты файла
     pdf_bytes = await file.read()
 
     try:

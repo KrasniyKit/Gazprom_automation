@@ -5,12 +5,12 @@
   width: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* prevent page scroll */
+  overflow: hidden; 
 }
 
 .page__content {
   flex: 1 1 auto;
-  overflow: auto; /* allow internal scrolling for content */
+  overflow: auto; 
   padding: 32px;
 }
 

@@ -2,7 +2,7 @@
 
 .footer {
   position: fixed;
-  left: 244px; /* reserve sidebar width */
+  left: 244px; 
   right: 0;
   bottom: 0;
   display: flex;
@@ -10,21 +10,21 @@
   align-items: center;
   padding: 16px;
   border-top: 1px solid $border;
-  background: $panel-surface; /* bg-surface-container-highest */
+  background: $panel-surface;
   gap: 12px;
   z-index: 40;
   box-shadow: 0 -1px 8px rgba(15,22,48,0.04);
 }
 
 .left {
-  min-width: 0; /* allow flex children to shrink */
-  font-size: 0.875rem; /* text-sm */
-  color: $muted; /* text-on-surface-variant */
+  min-width: 0;
+  font-size: 0.875rem; 
+  color: $muted; 
 }
 
 .count {
-  font-weight: 600; /* font-medium */
-  color: $accent; /* text-secondary */
+  font-weight: 600; 
+  color: $accent; 
   margin-left: 6px;
 }
 
@@ -38,7 +38,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 16px; /* px-4 py-2 */
+  padding: 8px 16px; 
   border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 600;
@@ -46,7 +46,7 @@
 }
 
 .btn .material-symbols-outlined {
-  font-size: 18px; /* text-[18px] */
+  font-size: 18px; 
 }
 
 .btn--delete {
@@ -55,7 +55,7 @@
 }
 
 .btn--delete:hover:not(.is-disabled) {
-  background: rgba(239,68,68,0.06); /* light red hover */
+  background: rgba(239,68,68,0.06); 
 }
 
 .btn--muted {
@@ -63,7 +63,7 @@
   background: transparent;
 }
 
-// Two-step gradient using existing variables. If $color-primary-container not defined, fallback to $color-primary.
+
 $color-primary-container: $color-primary;
 
 .btn--save {

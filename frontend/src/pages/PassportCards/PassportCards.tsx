@@ -46,7 +46,6 @@ const PassportCards: React.FC = () => {
   };
 
   useEffect(() => {
-    // Prevent the main page from scrolling while on this view, but allow internal scrollable containers (table)
     const prevBodyOverflow = document.body.style.overflow;
     const prevHtmlOverflow = document.documentElement.style.overflow;
     document.body.style.overflow = 'hidden';

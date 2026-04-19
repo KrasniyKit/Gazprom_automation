@@ -7,7 +7,6 @@
 }
 
 @font-face {
-  /* Use the variable Material Symbols Outlined (CDN fallback) to support font-variation-settings (FILL axis) */
   font-family: 'Material Symbols Outlined';
   font-style: normal;
   font-weight: 100 700;

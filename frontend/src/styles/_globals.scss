@@ -42,33 +42,29 @@ body {
 }
 
 .material-symbols-outlined {
-  /* keep default size, allow variation via fontVariationSettings */
   font-variation-settings: 'FILL' 0;
   font-feature-settings: 'liga';
   font-size: 20px;
   line-height: 1;
 }
 
-/* Layout: reserve space for fixed sidebar */
 main {
-  margin-left: 244px; /* sidebar width */
+  margin-left: 244px; 
   min-width: calc(100% - 220px);
   box-sizing: border-box;
   min-height: 100vh;
 }
 
-/* Allow content within main to shrink if inside flex containers */
+
 main * {
   min-width: 0;
 }
 
-/* Page content helper — components can use .page__content for consistent padding */
 .page__content {
   height: 100%;
   padding: 32px;
 }
 
-/* Ensure wide tables can scroll horizontally without breaking layout */
 .cards__table-wrap, .table-responsive {
   width: 100%;
   overflow-x: auto;

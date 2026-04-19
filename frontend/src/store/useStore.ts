@@ -132,13 +132,12 @@ const mapPassportResponse = (rawData: unknown, file: File): PassportRow => {
     if (typeof val === 'string') {
       const s = val.trim();
       if (!s) return '';
-      // If already in YYYY-MM-DD or starts with ISO date, take first 10 chars
       const isoLike = /^\d{4}-\d{2}-\d{2}/;
       const match = s.match(isoLike);
       if (match) return match[0];
       const parsed = Date.parse(s);
       if (!isNaN(parsed)) return new Date(parsed).toISOString().slice(0, 10);
-      return s; // fallback to original string
+      return s; 
     }
     return '';
   };
@@ -236,7 +235,6 @@ const useStore = create<Store>((set, get) => {
 
       set({ isUploading: true, uploadError: null });
 
-      // Create file records immediately so UI shows processing state for all selected files
       const newRecords = files.map((file) => ({
         id: makeId(),
         name: file.name,
@@ -247,22 +245,20 @@ const useStore = create<Store>((set, get) => {
 
       set((state) => ({ files: [...newRecords, ...state.files] }));
 
-      // Prepare tasks linking input File to its record id
       const tasks = newRecords.map((rec, i) => ({ file: files[i], recordId: rec.id }));
 
-      // concurrency control
-      const concurrency = 3; // parallel uploads
+
+      const concurrency = 3;
       let idx = 0;
 
       const runTask = async (task: { file: File; recordId: string }) => {
         try {
           const formData = new FormData();
-          // Send explicit filename + client id so backend can return stable file linkage
           formData.append('file', task.file, task.file.name);
           formData.append('client_file_id', task.recordId);
           formData.append('original_file_name', task.file.name);
           const response = await axios.post(uploadUrl, formData, {
-            timeout: 0, // allow long-running requests
+            timeout: 0, 
             onUploadProgress: (ev: AxiosProgressEvent) => {
               const percent = ev.total ? Math.round((ev.loaded / ev.total) * 100) : 0;
               set((state) => ({ files: state.files.map((f) => (f.id === task.recordId ? { ...f, progress: percent } : f)) }));
@@ -301,7 +297,6 @@ const useStore = create<Store>((set, get) => {
         while (true) {
           const i = idx++;
           if (i >= tasks.length) break;
-          // eslint-disable-next-line no-await-in-loop
           await runTask(tasks[i]);
         }
       });

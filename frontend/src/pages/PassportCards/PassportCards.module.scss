@@ -1,11 +1,11 @@
 @use '../../styles/_variables.scss' as *;
 
 .page--cards {
-  height: 100vh; /* take full viewport so page itself won't scroll */
+  height: 100vh;
   width: 100%;
   display: flex;
   flex-direction: column;
-  overflow: hidden; /* prevent the page from scrolling */
+  overflow: hidden; 
 }
 
 .page__content--cards {
@@ -13,9 +13,9 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding-bottom: 96px; /* reserve space for fixed footer */
+  padding-bottom: 96px;
   flex: 1 1 auto;
-  overflow: hidden; /* keep scrolling inside child regions */
+  overflow: hidden; 
 }
 
 .cards__stats {
