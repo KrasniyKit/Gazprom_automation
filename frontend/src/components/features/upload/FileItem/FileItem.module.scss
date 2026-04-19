@@ -1,0 +1,87 @@
+.file-item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(115,119,130,0.08);
+  background: #fff;
+}
+
+.file-item__meta {
+  flex: 1;
+}
+
+.file-item__name {
+  font-weight: 600;
+}
+
+.file-item__size {
+  font-size: 12px;
+  color: rgba(21,28,39,0.6);
+}
+
+.file-item__status {
+  min-width: 80px;
+  text-align: right;
+  font-weight: 600;
+}
+
+.file-item--done .file-item__status {
+  color: #047857;
+}
+
+.file-item--processing .file-item__status {
+  color: #0ea5e9;
+}
+
+.file-item--pending .file-item__status {
+  color: rgba(21,28,39,0.6);
+}
+
+.file-item--error .file-item__status {
+  color: #b91c1c;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.file-item__view {
+  margin-left: 12px;
+  color: #047857;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  transition: background-color .12s ease, color .12s ease;
+}
+
+.file-item__view:hover {
+  // background: rgba(15,23,42,0.04);
+}
+
+.file-item__icon {
+  font-size: 28px;
+  color: rgba(15,23,42,0.7);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.file-item__processing {
+  margin-left: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  color: #0ea5e9;
+  animation: spin 1s linear infinite;
+}

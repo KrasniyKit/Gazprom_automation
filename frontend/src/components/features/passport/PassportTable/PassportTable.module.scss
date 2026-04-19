@@ -1,0 +1,88 @@
+@use "../../../../styles/_variables.scss" as *;
+
+.cards__table-wrap {
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid rgba(115,119,130,0.08);
+}
+
+.cards__table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1000px;
+}
+
+.cards__table thead th {
+  text-align: left;
+  padding: 12px;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.cards__table tbody td {
+  padding: 12px;
+  border-top: 1px solid rgba(115,119,130,0.06);
+}
+
+.cards__row--selected {
+  background: #f1f6ff;
+}
+
+.cards__input {
+  border: none;
+  padding: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0; /* allow flex items to shrink when badge is present */
+}
+
+.cards__warn {
+  background: $warn-light;
+  padding: 4px 8px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.cards__row--warn {
+  background: $warn-bg;
+}
+
+.cards__row--warn:hover {
+  background: $warn-border;
+}
+
+.cards__cell--warn {
+  position: relative;
+}
+
+/* layout container so input and badge sit on same row */
+.cards__cell--warn > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* make the input a flexible item so it doesn't push the badge to the next line */
+.cards__cell--warn .cards__input {
+  flex: 1 1 auto;
+  width: auto;
+  min-width: 0;
+}
+
+.cards__uncertain-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: $warn-amber-light;
+  border: 1px solid $warn-amber-border;
+  color: $warn-amber;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.8125rem; /* 13px */
+}
+
+.cards__uncertain-badge .material-symbols-outlined {
+  font-size: 14px;
+  color: $warn-amber;
+}

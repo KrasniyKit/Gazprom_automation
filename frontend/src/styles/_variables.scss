@@ -1,0 +1,35 @@
+// Project style variables
+// Keep names expressive and stable across components
+
+$color-primary: #002a5d;
+$color-primary-strong: #003f87;
+$surface: #f9f9ff;
+$white: #ffffff;
+$text: #0f1630;
+$muted: rgba(21,28,39,0.6);
+$muted-strong: rgba(21,28,39,0.7);
+
+$border: rgba(115,119,130,0.08);
+$border-subtle: rgba(115,119,130,0.06);
+$border-strong: rgba(115,119,130,0.15);
+$border-weak: rgba(21,28,39,0.06);
+
+$accent: #005fae;
+$success: #047857;
+$info: #0ea5e9;
+
+$danger: #ef4444;
+$danger-dark: #b91c1c;
+$danger-bg: #fff7f7;
+
+$warn-bg: #fffbeb;
+$warn-border: #fef3c7;
+$warn-light: #fff7cc;
+
+// Amber (warning) accents for uncertain fields
+$warn-amber: #b45309;
+$warn-amber-light: #fff7cc;
+$warn-amber-border: #fef3c7;
+
+$row-selected: #f1f6ff;
+$panel-surface: #fbfbff;

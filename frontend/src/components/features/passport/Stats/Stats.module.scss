@@ -1,0 +1,31 @@
+.cards__stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.cards__stat {
+  background: #fff;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(115,119,130,0.08);
+}
+
+.cards__stat-label {
+  font-size: 12px;
+  color: rgba(21,28,39,0.6);
+}
+
+.cards__stat-value {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.cards__stat--warn {
+  background: #fffbeb;
+  border-color: #fef3c7;
+}
+
+.cards__stat-value--processed {
+  color: #005fae;
+}

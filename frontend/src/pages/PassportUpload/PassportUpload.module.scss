@@ -1,0 +1,105 @@
+@use '../../styles/_variables.scss' as *;
+
+.page--upload {
+  min-height: 100%;
+  width: 100%;
+}
+
+.passport-upload {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.passport-upload__hero {
+  margin-bottom: 16px;
+}
+
+.passport-upload__title {
+  font-size: 28px;
+  font-weight: 700;
+  color: $text;
+}
+
+.passport-upload__subtitle {
+  color: $muted-strong;
+}
+
+.passport-upload__dropzone {
+  border: 2px dashed rgba(115,119,130,0.5);
+  border-radius: 8px;
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: $white;
+}
+
+.passport-upload__icon {
+  font-size: 36px;
+  color: $accent;
+}
+
+.passport-upload__button {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid rgba(115,119,130,0.4);
+  background: $surface;
+  color: $accent;
+}
+
+.passport-upload__list {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.passport-upload__item {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid $border;
+  background: $white;
+}
+
+.passport-upload__meta {
+  flex: 1;
+}
+
+.passport-upload__name {
+  font-weight: 600;
+}
+
+.passport-upload__size {
+  font-size: 12px;
+  color: $muted;
+}
+
+.passport-upload__status {
+  min-width: 80px;
+  text-align: right;
+  font-weight: 600;
+}
+
+.passport-upload__status--ok {
+  color: $success;
+}
+
+.passport-upload__status--processing {
+  color: $info;
+}
+
+.passport-upload__status--pending {
+  color: $muted;
+}
+
+.passport-upload__status--error {
+  color: $danger-dark;
+  background: #fff2f2;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
