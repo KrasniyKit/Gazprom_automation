@@ -13,18 +13,23 @@ const PassportTable: React.FC = () => {
 
   return (
     <div className={styles['cards__table-wrap']}>
-      <table className={styles['cards__table']}>
+      <div className={styles['cards__scroll']}>
+        <table className={styles['cards__table']}>
         <thead>
           <tr>
             <th><label className={styles['cards__select-all']}><input type="checkbox" checked={selectAll} onChange={toggleAll} /><span>Выбрать все</span></label></th>
             <th>№</th>
-            <th>Наименование</th>
-            <th>Обозначение ПС</th>
-            <th>Заводской номер</th>
+            <th>Наименование оборудования</th>
+            <th>Назначение</th>
+            <th>Тех. характеристики</th>
             <th>Изготовитель</th>
-            <th>Дата</th>
+            <th>Нормативные документы</th>
+            <th>Номер паспорта</th>
+            <th>Дата выдачи</th>
+            <th>Комплектность</th>
+            <th>Срок службы</th>
             <th>Гарантия</th>
-            <th>Файл</th>
+            <th>Файл-источник</th>
           </tr>
         </thead>
         <tbody>
@@ -39,7 +44,8 @@ const PassportTable: React.FC = () => {
             />
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
 
     </div>
   );

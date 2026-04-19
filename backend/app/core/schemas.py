@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Optional, List, Literal
 from pydantic import BaseModel, Field, ConfigDict
 
+
 UncertainField = Literal[
     "equipment_name",
     "purpose",
@@ -23,7 +24,6 @@ class SourceSchema(BaseModel):
     page_count: int = 0
     ocr_engine: str = ""
     ocr_confidence: Optional[float] = None
-
 
 class PassportResponseSchema(BaseModel):
     model_config = ConfigDict(extra="forbid")

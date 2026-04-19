@@ -14,6 +14,7 @@ const FileList: React.FC = () => {
       {files.map((f) => (
         <FileItem
           key={f.id}
+          id={f.id}
           name={f.name}
           size={f.size}
           status={f.status}
