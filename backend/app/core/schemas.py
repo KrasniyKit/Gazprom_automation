@@ -1,46 +1,48 @@
 from datetime import datetime
-from typing import Optional, List
-from pydantic import BaseModel
+from typing import Optional, List, Literal
+from pydantic import BaseModel, Field, ConfigDict
 
 
-class ItemSchema(BaseModel):
-    line_number: Optional[int] = None
-    name: str
-    passport_number: Optional[str] = None
-    factory_number: Optional[str] = None
-    pages_count: Optional[int] = None
-    certificate_count: Optional[int] = None
-
-
-class ItemsListSchema(BaseModel):
-    list_type: str = "array"
-    min_items: int = 1
-    items: Optional[List[ItemSchema]] = None
+UncertainField = Literal[
+    "equipment_name",
+    "purpose",
+    "technical_specs",
+    "manufacturer",
+    "normative_docs",
+    "passport_number",
+    "issue_date",
+    "completeness",
+    "service_life",
+    "warranty",
+]
 
 
 class SourceSchema(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     file_name: str
-    page_count: int
-    ocr_engine: Optional[str] = None
+    page_count: int = 0
+    ocr_engine: str = ""
     ocr_confidence: Optional[float] = None
 
-
 class PassportResponseSchema(BaseModel):
-    doc_type: str = "equipment_passport"
-    
+    model_config = ConfigDict(extra="forbid")
+
+    doc_type: Literal["equipment_passport"] = "equipment_passport"
+
     equipment_name: str
-    purpose: Optional[str] = None
-    technical_specs: Optional[str] = None
-    
+    purpose: str = ""
+    technical_specs: str = ""
+
     manufacturer: str
-    normative_docs: Optional[str] = None
-    passport_number: Optional[str] = None
+    normative_docs: str = ""
+    passport_number: str = ""
     issue_date: Optional[datetime] = None
-    
-    completeness: Optional[str] = None
-    service_life: Optional[str] = None
-    warranty: Optional[str] = None
-    
-    items: ItemsListSchema
+
+    completeness: str = ""
+    service_life: str = ""
+    warranty: str = ""
+
+    uncertain_fields: List[UncertainField] = Field(default_factory=list)
+
     source: SourceSchema
-    notes: Optional[str] = None

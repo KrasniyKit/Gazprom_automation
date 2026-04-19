@@ -14,14 +14,23 @@ export type FileRecord = {
 
 export type PassportRow = {
   id: string;
-  name: string;
-  code: string;
-  factoryNumber: string;
+  equipment_name: string;
+  purpose: string;
+  technical_specs: string;
   manufacturer: string;
-  date: string;
+  normative_docs: string;
+  passport_number: string;
+  issue_date: string;
+  completeness: string;
+  service_life: string;
   warranty: string;
   sourceFile?: string;
-  uncertainFields?: Partial<Record<'name' | 'code' | 'factoryNumber' | 'manufacturer' | 'date' | 'warranty', boolean>>;
+  uncertainFields?: Partial<Record<
+    'equipment_name' | 'purpose' | 'technical_specs' |
+    'manufacturer' | 'normative_docs' | 'passport_number' |
+    'issue_date' | 'completeness' | 'service_life' | 'warranty',
+    boolean
+  >>;
 };
 
 type Store = {
@@ -69,13 +78,33 @@ const toFileSize = (bytes: number) => {
 };
 
 const normalizeUncertainFields = (value: unknown): PassportRow['uncertainFields'] => {
-  if (!value || typeof value !== 'object') return undefined;
-  const allowed = ['name', 'code', 'factoryNumber', 'manufacturer', 'date', 'warranty'] as const;
+  const allowed = [
+    'equipment_name',
+    'purpose',
+    'technical_specs',
+    'manufacturer',
+    'normative_docs',
+    'passport_number',
+    'issue_date',
+    'completeness',
+    'service_life',
+    'warranty',
+  ] as const;
   const result: PassportRow['uncertainFields'] = {};
-  allowed.forEach((key) => {
-    const boolValue = (value as Record<string, unknown>)[key];
-    if (typeof boolValue === 'boolean') result[key] = boolValue;
-  });
+  if (Array.isArray(value)) {
+    value.forEach((item) => {
+      if (typeof item === 'string' && (allowed as readonly string[]).includes(item)) {
+        result[item as keyof typeof result] = true;
+      }
+    });
+  } else if (value && typeof value === 'object') {
+    allowed.forEach((key) => {
+      const boolValue = (value as Record<string, unknown>)[key];
+      if (typeof boolValue === 'boolean') result[key] = boolValue;
+    });
+  } else {
+    return undefined;
+  }
   return Object.keys(result).length ? result : undefined;
 };
 
@@ -88,18 +117,47 @@ const mapPassportResponse = (rawData: unknown, file: File): PassportRow => {
 
   const obj = (payload && typeof payload === 'object') ? (payload as Record<string, unknown>) : {};
   const id = String(obj.id ?? makeId());
-  const sourceFile = String(obj.sourceFile ?? obj.fileName ?? file.name);
+  const source = (obj.source && typeof obj.source === 'object') ? (obj.source as Record<string, unknown>) : undefined;
+  const sourceFile = String(source?.file_name ?? obj.sourceFile ?? obj.fileName ?? file.name);
+  const issueDateValue = obj.issue_date ?? obj.issueDate ?? '';
+
+  const parseDateToISO = (val: unknown): string => {
+    if (!val && val !== 0) return '';
+    if (val instanceof Date && !isNaN(val.getTime())) return val.toISOString().slice(0, 10);
+    if (typeof val === 'number') {
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+    }
+    if (typeof val === 'string') {
+      const s = val.trim();
+      if (!s) return '';
+      // If already in YYYY-MM-DD or starts with ISO date, take first 10 chars
+      const isoLike = /^\d{4}-\d{2}-\d{2}/;
+      const match = s.match(isoLike);
+      if (match) return match[0];
+      const parsed = Date.parse(s);
+      if (!isNaN(parsed)) return new Date(parsed).toISOString().slice(0, 10);
+      return s; // fallback to original string
+    }
+    return '';
+  };
+
+  const issueDateString = parseDateToISO(issueDateValue);
 
   return {
     id,
-    name: String(obj.name ?? obj.equipmentName ?? obj.title ?? file.name.replace(/\.[^/.]+$/, '')),
-    code: String(obj.code ?? obj.designation ?? obj.psCode ?? ''),
-    factoryNumber: String(obj.factoryNumber ?? obj.serialNumber ?? obj.factory_number ?? ''),
+    equipment_name: String(obj.equipment_name ?? obj.equipmentName ?? obj.name ?? file.name.replace(/\.[^/.]+$/, '')),
+    purpose: String(obj.purpose ?? ''),
+    technical_specs: String(obj.technical_specs ?? obj.technicalSpecs ?? ''),
     manufacturer: String(obj.manufacturer ?? obj.vendor ?? ''),
-    date: String(obj.date ?? obj.manufactureDate ?? ''),
+    normative_docs: String(obj.normative_docs ?? obj.normativeDocs ?? ''),
+    passport_number: String(obj.passport_number ?? obj.passportNumber ?? ''),
+    issue_date: issueDateString,
+    completeness: String(obj.completeness ?? ''),
+    service_life: String(obj.service_life ?? obj.serviceLife ?? ''),
     warranty: String(obj.warranty ?? obj.warrantyPeriod ?? ''),
     sourceFile,
-    uncertainFields: normalizeUncertainFields(obj.uncertainFields),
+    uncertainFields: normalizeUncertainFields(obj.uncertain_fields ?? obj.uncertainFields),
   };
 };
 
@@ -235,11 +293,15 @@ const useStore = create<Store>((set, get) => {
         const sheetRows = rows.map((row, index) => ({
           '№': index + 1,
           'ID': row.id,
-          'Наименование': row.name,
-          'Обозначение ПС': row.code,
-          'Заводской номер': row.factoryNumber,
+          'Наименование оборудования': row.equipment_name,
+          'Назначение': row.purpose,
+          'Тех. характеристики': row.technical_specs,
           'Изготовитель': row.manufacturer,
-          'Дата': row.date,
+          'Нормативные документы': row.normative_docs,
+          'Номер паспорта': row.passport_number,
+          'Дата выдачи': row.issue_date,
+          'Комплектность': row.completeness,
+          'Срок службы': row.service_life,
           'Гарантия': row.warranty,
           'Файл-источник': row.sourceFile ?? '',
         }));
@@ -248,11 +310,15 @@ const useStore = create<Store>((set, get) => {
         worksheet['!cols'] = [
           { wch: 6 },  // №
           { wch: 20 }, // ID
-          { wch: 36 }, // Наименование
-          { wch: 20 }, // Обозначение ПС
-          { wch: 22 }, // Заводской номер
+          { wch: 36 }, // Наименование оборудования
+          { wch: 24 }, // Назначение
+          { wch: 28 }, // Тех. характеристики
           { wch: 28 }, // Изготовитель
-          { wch: 14 }, // Дата
+          { wch: 26 }, // Нормативные документы
+          { wch: 20 }, // Номер паспорта
+          { wch: 14 }, // Дата выдачи
+          { wch: 22 }, // Комплектность
+          { wch: 16 }, // Срок службы
           { wch: 14 }, // Гарантия
           { wch: 30 }, // Файл-источник
         ];

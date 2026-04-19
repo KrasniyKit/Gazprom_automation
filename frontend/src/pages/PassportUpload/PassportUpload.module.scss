@@ -1,8 +1,17 @@
 @use '../../styles/_variables.scss' as *;
 
 .page--upload {
-  min-height: 100%;
+  height: 100vh;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden; /* prevent page scroll */
+}
+
+.page__content {
+  flex: 1 1 auto;
+  overflow: auto; /* allow internal scrolling for content */
+  padding: 32px;
 }
 
 .passport-upload {

@@ -3,9 +3,9 @@ import { Link } from 'react-router-dom';
 import styles from './FileItem.module.scss';
 import type { FileRecord } from '@/store/useStore';
 
-export type FileItemProps = Pick<FileRecord, 'name' | 'size' | 'status' | 'passportId' | 'errorMessage'>;
+export type FileItemProps = Pick<FileRecord, 'id' | 'name' | 'size' | 'status' | 'passportId' | 'errorMessage'>;
 
-const FileItem: React.FC<FileItemProps> = ({ name, size, status, passportId, errorMessage }) => {
+const FileItem: React.FC<FileItemProps> = ({ id, name, size, status, passportId, errorMessage }) => {
   const outerClass = `${styles['file-item']} ${styles[`file-item--${status}`]}`;
   const statusText =
     status === 'done'
@@ -17,7 +17,7 @@ const FileItem: React.FC<FileItemProps> = ({ name, size, status, passportId, err
           : 'Ошибка';
 
   return (
-    <div className={outerClass}>
+    <div id={`file-${id}`} className={outerClass}>
       <span className={`material-symbols-outlined ${styles['file-item__icon']}`}>description</span>
       <div className={styles['file-item__meta']}>
         <div className={styles['file-item__name']}>{name}</div>

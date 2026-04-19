@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from '@/components/layout/Header';
 import useStore from '@/store/useStore';
 import Modal from '@/components/shared/Modal';
@@ -44,6 +44,19 @@ const PassportCards: React.FC = () => {
       setRemoveAfterExport(false);
     }
   };
+
+  useEffect(() => {
+    // Prevent the main page from scrolling while on this view, but allow internal scrollable containers (table)
+    const prevBodyOverflow = document.body.style.overflow;
+    const prevHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = prevBodyOverflow;
+      document.documentElement.style.overflow = prevHtmlOverflow;
+    };
+  }, []);
 
   return (
     <main className={styles['page--cards']}>
