@@ -1,12 +1,12 @@
 # Gazprom Automation
 
 Сервис для оцифровки PDF-паспортов оборудования:  
-**PDF -> OCR (PaddleOCR) -> LLM (Ollama/Qwen) -> структурированный JSON -> frontend-таблица/экспорт**.
+**PDF -> Vision LLM (Ollama/Qwen2.5-VL) -> структурированный JSON -> frontend-таблица/экспорт**.
 
 ## 1. Что внутри
 
 - **Backend (FastAPI)**: принимает PDF, извлекает текст, вызывает LLM, валидирует схему.
-- **Ollama**: хостит локальную LLM-модель (`qwen2.5:7b` по умолчанию).
+- **Ollama**: хостит локальную Vision LLM-модель (`qwen2.5vl:7b` по умолчанию).
 - **Frontend (React + Vite)**: загрузка PDF, просмотр карточек, экспорт в Excel.
 
 ---
@@ -60,7 +60,7 @@ poetry run uvicorn app.main:app --host 0.0.0.0 --port 8000
 
 ```bash
 export OLLAMA_HOST=http://localhost:11434
-export OLLAMA_MODEL=qwen2.5:7b
+export OLLAMA_MODEL=qwen2.5vl:7b
 ```
 
 ---
@@ -91,8 +91,8 @@ export VITE_UPLOAD_ENDPOINT=/api/v1/passport
 | Переменная | По умолчанию | Назначение |
 |---|---|---|
 | `OLLAMA_HOST` | `http://ollama:11434` | Адрес Ollama API |
-| `OLLAMA_MODEL` | `qwen2.5:7b` | Имя модели |
-| `PDF_DPI` | `170` | DPI для рендера PDF перед OCR (`100..300`) |
+| `OLLAMA_MODEL` | `qwen2.5vl:7b` | Имя visual-модели |
+| `PDF_DPI` | `170` | DPI для рендера PDF перед анализом изображений (`100..300`) |
 
 ### Frontend
 
@@ -167,7 +167,7 @@ npm run build
 ### Сценарий B: повторная обработка PDF
 
 1. Отправлять новые PDF на тот же endpoint
-2. Повторные запросы обычно быстрее (после прогрева модели/OCR)
+2. Повторные запросы обычно быстрее (после прогрева модели)
 
 ### Сценарий C: смена модели
 
@@ -201,7 +201,7 @@ docker compose up -d --build backend
 Решение: дождаться авто-pull на старте backend или вручную:
 
 ```bash
-docker exec -it ollama_server ollama pull qwen2.5:7b
+docker exec -it ollama_server ollama pull qwen2.5vl:7b
 ```
 
 ### Первый запрос очень долгий
@@ -212,7 +212,7 @@ docker exec -it ollama_server ollama pull qwen2.5:7b
 ### `422` с ошибками валидации полей
 
 Значит LLM вернула невалидные типы/поля.  
-В проекте есть нормализация перед schema validation, но для сложных кейсов проверьте OCR-текст и промпт.
+В проекте есть нормализация перед schema validation, но для сложных кейсов проверьте качество страниц PDF и промпт.
 
 ### `/health/ready` возвращает 503
 

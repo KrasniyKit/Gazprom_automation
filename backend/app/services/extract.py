@@ -1,24 +1,20 @@
 #!/usr/bin/env python3
 """
-Модуль оцифровки: PDF -> PaddleOCR -> Qwen2.5 (Text LLM) -> JSON (ГОСТ 2.601-2013)
+Модуль оцифровки: PDF -> Qwen2.5-VL (Vision LLM) -> JSON (ГОСТ 2.601-2013)
 """
 
+import base64
 import json
 import os
 import re
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 
-import fitz  # PyMuPDF 
-import numpy as np
+import fitz  # PyMuPDF
 import ollama
-from paddleocr import PaddleOCR
 
 from app.core.schemas import PassportResponseSchema
 
-# =============================================================================
-# КОНФИГУРАЦИЯ И ПРОМПТ
-# =============================================================================
 
 def _read_pdf_dpi() -> int:
     raw_value = os.getenv("PDF_DPI", "170")
@@ -31,7 +27,7 @@ def _read_pdf_dpi() -> int:
 
 @dataclass
 class ExtractorConfig:
-    model: str = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
+    model: str = os.getenv("OLLAMA_MODEL", "qwen2.5vl:7b")
     api_base: str = os.getenv("OLLAMA_HOST", "http://ollama:11434")
     pdf_dpi: int = _read_pdf_dpi()
 
@@ -40,74 +36,35 @@ SYSTEM_PROMPT_PATH = Path("app/prompts/system/extractor_llm.txt")
 try:
     SYSTEM_PROMPT = SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
 except FileNotFoundError:
-    SYSTEM_PROMPT = "Извлеки данные из текста."
+    SYSTEM_PROMPT = "Извлеки данные из изображений документа."
 
-
-# =============================================================================
-# КЛАССЫ ЛОГИКИ
-# =============================================================================
 
 class ExtractionError(Exception):
     pass
 
 
 class PDFRenderer:
-    """Конвертирует байты PDF в список Numpy-массивов (картинок для OCR)."""
-    
+    """Конвертирует байты PDF в PNG-изображения (base64) для Vision LLM."""
+
     @staticmethod
-    def to_numpy_images(pdf_bytes: bytes, dpi: int = 200) -> list[np.ndarray]:
+    def to_base64_png_images(pdf_bytes: bytes, dpi: int = 170) -> list[str]:
         if not pdf_bytes:
             raise ExtractionError("Пустые байты PDF.")
-            
-        images = []
+
+        images: list[str] = []
         try:
             doc = fitz.open(stream=pdf_bytes, filetype="pdf")
             for page in doc:
                 pix = page.get_pixmap(dpi=dpi)
-                # Конвертируем pixmap в numpy array (PaddleOCR ест только numpy/PIL)
-                img = np.frombuffer(pix.samples, dtype=np.uint8).reshape(pix.height, pix.width, pix.n)
-                images.append(img)
+                png_bytes = pix.tobytes("png")
+                images.append(base64.b64encode(png_bytes).decode("utf-8"))
             doc.close()
         except Exception as e:
             raise ExtractionError(f"Ошибка рендеринга PDF: {e}")
-            
+
         return images
 
 
-class OCRExtractor:
-    """Отвечает за распознавание текста через PaddleOCR."""
-    
-    def __init__(self):
-        # use_angle_cls=True — поворачивает текст, если скан кривой
-        # show_log=False — убирает спам в консоли
-        self._ocr = PaddleOCR(use_angle_cls=True, lang='ru')
-
-    def extract_text(self, images: list[np.ndarray]) -> str:
-        if not images:
-            raise ExtractionError("Список изображений пуст.")
-
-        full_text = []
-        try:
-            for img in images:
-                result = self._ocr.ocr(img, cls=True)
-                if not result or not result[0]:
-                    continue
-                
-                # Сортируем блоки по Y (сверху вниз), затем по X (слева направо)
-                # Это сохраняет логическую структуру чтения документа
-                lines = sorted(result[0], key=lambda x: (x[0][0][1], x[0][0][0]))
-                
-                for line in lines:
-                    text = line[1][0]  # Сам текст
-                    full_text.append(text)
-                    
-        except Exception as e:
-            raise ExtractionError(f"Ошибка PaddleOCR: {e}")
-
-        return "\n".join(full_text)
-
-
-_OCR_EXTRACTOR: OCRExtractor | None = None
 _OLLAMA_CLIENTS: dict[str, ollama.Client] = {}
 
 STRING_FIELDS_WITH_EMPTY_DEFAULT = (
@@ -119,13 +76,6 @@ STRING_FIELDS_WITH_EMPTY_DEFAULT = (
     "service_life",
     "warranty",
 )
-
-
-def get_ocr_extractor() -> OCRExtractor:
-    global _OCR_EXTRACTOR
-    if _OCR_EXTRACTOR is None:
-        _OCR_EXTRACTOR = OCRExtractor()
-    return _OCR_EXTRACTOR
 
 
 def get_ollama_client(api_base: str) -> ollama.Client:
@@ -167,43 +117,47 @@ def _normalize_raw_data(raw_data: dict) -> dict:
 
 
 class PassportExtractor:
-    """Отвечает за общение с текстовой LLM и парсинг ответа."""
+    """Отвечает за общение с Vision LLM и парсинг ответа."""
 
     def __init__(self, config: ExtractorConfig):
         self._config = config
         self._client = get_ollama_client(config.api_base)
 
-    def extract(self, ocr_text: str) -> dict:
-        if not ocr_text.strip():
-            raise ExtractionError("OCR вернул пустой текст.")
-        raw_content = self._call_llm(ocr_text)
+    def extract(self, page_images: list[str]) -> dict:
+        if not page_images:
+            raise ExtractionError("PDF не содержит страниц для анализа.")
+        raw_content = self._call_llm(page_images)
         return self._parse_json(raw_content)
 
-    def _call_llm(self, ocr_text: str) -> str:
+    def _call_llm(self, page_images: list[str]) -> str:
         messages = [
             {"role": "system", "content": SYSTEM_PROMPT},
             {
                 "role": "user",
-                "content": f"Вот сырой текст из OCR паспорта оборудования:\n\n{ocr_text}"
-            }
+                "content": (
+                    "Проанализируй все страницы PDF-паспорта на изображениях и верни "
+                    "структурированный JSON строго по схеме."
+                ),
+                "images": page_images,
+            },
         ]
         try:
             response = self._client.chat(
                 model=self._config.model,
-                format='json',
+                format="json",
                 messages=messages,
             )
-            return response['message']['content']
+            return response["message"]["content"]
         except Exception as e:
             if self._is_missing_model_error(e):
                 self._pull_model()
                 try:
                     response = self._client.chat(
                         model=self._config.model,
-                        format='json',
+                        format="json",
                         messages=messages,
                     )
-                    return response['message']['content']
+                    return response["message"]["content"]
                 except Exception as retry_error:
                     raise ExtractionError(f"Ошибка вызова Ollama API после загрузки модели: {retry_error}")
             raise ExtractionError(f"Ошибка вызова Ollama API: {e}")
@@ -222,8 +176,8 @@ class PassportExtractor:
     @staticmethod
     def _parse_json(content: str) -> dict:
         text = content.strip()
-        text = re.sub(r'^```(?:json)?\s*\n?', '', text)
-        text = re.sub(r'\n?\s*```$', '', text).strip()
+        text = re.sub(r"^```(?:json)?\s*\n?", "", text)
+        text = re.sub(r"\n?\s*```$", "", text).strip()
 
         try:
             return json.loads(text)
@@ -237,38 +191,27 @@ class PassportExtractor:
             raise ExtractionError("Модель вернула невалидный JSON.")
 
 
-# =============================================================================
-# ОРКЕСТРАТОР
-# =============================================================================
-
 def process_passport_bytes(pdf_bytes: bytes, filename: str = "upload.pdf") -> dict:
     """
-    Полный пайплайн: PDF -> Numpy -> OCR -> LLM -> Валидированный JSON.
+    Полный пайплайн: PDF -> PNG страницы -> Vision LLM -> Валидированный JSON.
     """
     config = ExtractorConfig()
     renderer = PDFRenderer()
-    ocr = get_ocr_extractor()
     extractor = PassportExtractor(config)
 
     print(f"📄 Рендеринг PDF: {filename}...")
-    images = renderer.to_numpy_images(pdf_bytes, dpi=config.pdf_dpi)
-    print(f"🖼 Сконвертировано страниц: {len(images)}")
+    page_images = renderer.to_base64_png_images(pdf_bytes, dpi=config.pdf_dpi)
+    print(f"🖼 Сконвертировано страниц: {len(page_images)}")
 
-    print("🔤 Запуск PaddleOCR...")
-    ocr_text = ocr.extract_text(images)
-    print(f"📝 OCR извлек {len(ocr_text)} символов текста.")
+    print("🧠 Отправка изображений в Qwen2.5-VL для извлечения полей ГОСТ...")
+    raw_data = _normalize_raw_data(extractor.extract(page_images))
 
-    print("🧠 Отправка текста в Qwen2.5 для извлечения полей ГОСТ...")
-    raw_data = _normalize_raw_data(extractor.extract(ocr_text))
-
-    # Добавляем системные метаданные
     raw_data["source"] = {
         "file_name": filename,
-        "page_count": len(images),
-        "ocr_engine": "paddleocr + qwen2.5"
+        "page_count": len(page_images),
+        "ocr_engine": "qwen2.5-vl",
     }
 
-    # Валидация по ГОСТ схеме
     try:
         validated_passport = PassportResponseSchema.model_validate(raw_data)
         print("✅ Данные успешно извлечены и провалидированы!")

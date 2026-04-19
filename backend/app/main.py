@@ -16,7 +16,7 @@ app.include_router(api_router)
 
 def _ollama_readiness() -> tuple[bool, str]:
     ollama_host = os.getenv("OLLAMA_HOST", "http://ollama:11434")
-    model_name = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
+    model_name = os.getenv("OLLAMA_MODEL", "qwen2.5vl:7b")
 
     try:
         with urllib.request.urlopen(f"{ollama_host}/api/tags", timeout=5) as response:

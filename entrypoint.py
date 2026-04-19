@@ -5,7 +5,7 @@ import urllib.request
 import json
 
 OLLAMA_HOST_URL = os.getenv("OLLAMA_HOST", "http://ollama:11434")
-MODEL_NAME = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
+MODEL_NAME = os.getenv("OLLAMA_MODEL", "qwen2.5vl:7b")
 JSON_HEADERS = {"Content-Type": "application/json"}
 
 print(f"⏳ Waiting for Ollama server at {OLLAMA_HOST_URL}...")

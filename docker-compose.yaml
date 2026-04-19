@@ -19,7 +19,7 @@ services:
       - "8000:8000"
     environment:
       - OLLAMA_HOST=http://ollama:11434
-      - OLLAMA_MODEL=qwen2.5:7b
+      - OLLAMA_MODEL=qwen2.5vl:7b
     depends_on:
       - ollama
     # Раскомментируйте для Hot-Reload (чтобы изменения в коде применялись сразу)
