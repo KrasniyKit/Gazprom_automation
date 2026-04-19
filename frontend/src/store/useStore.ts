@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { type AxiosProgressEvent } from 'axios';
 import { create } from 'zustand';
 import * as XLSX from 'xlsx';
 
@@ -231,7 +231,7 @@ const useStore = create<Store>((set, get) => {
       if (!files.length) return;
 
       const apiBase = (import.meta.env.VITE_API_URL ?? '').replace(/\/$/, '');
-      const endpoint = import.meta.env.VITE_UPLOAD_ENDPOINT ?? '/api/passports/upload';
+      const endpoint = import.meta.env.VITE_UPLOAD_ENDPOINT ?? '/api/v1/passport';
       const uploadUrl = endpoint.startsWith('http') ? endpoint : `${apiBase}${endpoint}`;
 
       set({ isUploading: true, uploadError: null });
@@ -262,9 +262,8 @@ const useStore = create<Store>((set, get) => {
           formData.append('client_file_id', task.recordId);
           formData.append('original_file_name', task.file.name);
           const response = await axios.post(uploadUrl, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
             timeout: 0, // allow long-running requests
-            onUploadProgress: (ev: ProgressEvent) => {
+            onUploadProgress: (ev: AxiosProgressEvent) => {
               const percent = ev.total ? Math.round((ev.loaded / ev.total) * 100) : 0;
               set((state) => ({ files: state.files.map((f) => (f.id === task.recordId ? { ...f, progress: percent } : f)) }));
             },
@@ -281,7 +280,14 @@ const useStore = create<Store>((set, get) => {
         } catch (error: unknown) {
           const message =
             axios.isAxiosError(error)
-              ? String(error.response?.data?.message ?? error.message ?? 'Ошибка загрузки файла')
+              ? String(
+                (typeof error.response?.data === 'object' && error.response?.data
+                  ? (error.response.data as { detail?: string; message?: string }).detail
+                    ?? (error.response.data as { detail?: string; message?: string }).message
+                  : undefined)
+                ?? error.message
+                ?? 'Ошибка загрузки файла',
+              )
               : 'Ошибка загрузки файла';
 
           set((state) => ({

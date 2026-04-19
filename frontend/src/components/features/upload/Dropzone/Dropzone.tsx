@@ -61,8 +61,10 @@ const Dropzone: React.FC = () => {
         accept=".pdf,application/pdf"
         className={styles['dropzone__input']}
         onChange={async (e) => {
-          await processFiles(e.target.files);
-          e.currentTarget.value = '';
+          const input = e.currentTarget;
+          const selectedFiles = input.files;
+          await processFiles(selectedFiles);
+          input.value = '';
         }}
       />
       <span className={`material-symbols-outlined ${styles['dropzone__icon']}`}>upload</span>
